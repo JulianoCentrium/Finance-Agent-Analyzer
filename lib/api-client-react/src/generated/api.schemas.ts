@@ -815,6 +815,19 @@ export interface RecentTransaction {
   sourceName?: string | null;
 }
 
+export interface RecentInstallmentItem {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  currentInstallment: number;
+  totalInstallments: number;
+  /** @nullable */
+  cardName?: string | null;
+  /** @nullable */
+  categoryName?: string | null;
+}
+
 export interface CashFlowMonth {
   year: number;
   month: number;
@@ -1145,6 +1158,11 @@ export type GetCashFlowParams = {
 
 export type GetUpcomingBillsParams = {
   profileId: number;
+};
+
+export type GetRecentInstallmentsParams = {
+  profileId: number;
+  limit?: number;
 };
 
 export type GetCategoryBreakdownParams = {

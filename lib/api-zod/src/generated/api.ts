@@ -1466,6 +1466,30 @@ export const GetUpcomingBillsResponseItem = zod.object({
 export const GetUpcomingBillsResponse = zod.array(GetUpcomingBillsResponseItem);
 
 /**
+ * @summary Get installment transactions close to ending (max 3 last installments)
+ */
+export const getRecentInstallmentsQueryLimitDefault = 10;
+
+export const GetRecentInstallmentsQueryParams = zod.object({
+  profileId: zod.coerce.number(),
+  limit: zod.coerce.number().default(getRecentInstallmentsQueryLimitDefault),
+});
+
+export const GetRecentInstallmentsResponseItem = zod.object({
+  id: zod.number(),
+  description: zod.string(),
+  amount: zod.number(),
+  date: zod.coerce.date(),
+  currentInstallment: zod.number(),
+  totalInstallments: zod.number(),
+  cardName: zod.string().nullish(),
+  categoryName: zod.string().nullish(),
+});
+export const GetRecentInstallmentsResponse = zod.array(
+  GetRecentInstallmentsResponseItem,
+);
+
+/**
  * @summary Get spending breakdown by category for a month
  */
 export const GetCategoryBreakdownQueryParams = zod.object({

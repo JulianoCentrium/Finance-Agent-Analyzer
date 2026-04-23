@@ -3,23 +3,21 @@ import {
   useGetDashboardSummary,
   useGetUpcomingBills,
   useGetRecentTransactions,
-  useGetCategoryBreakdown,
+  useGetRecentInstallments,
 } from "@workspace/api-client-react";
-import { formatCurrency, formatCompact, formatDate, statusLabel, currentYearMonth, monthName } from "@/lib/utils";
+import { formatCurrency, formatCompact, formatDate, currentYearMonth, monthName } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   TrendingDown,
   Wallet,
   CreditCard,
   Clock,
   TrendingUp,
+  Layers,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useLocation } from "wouter";
-
-const CHART_COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#84cc16","#f97316"];
 
 function SummaryCard({
   title,
@@ -64,9 +62,75 @@ function SummaryCard({
   );
 }
 
+function ProgressSummaryCard({
+  title,
+  total,
+  used,
+  usedLabel,
+  icon: Icon,
+  loading,
+  competence,
+  href,
+}: {
+  title: string;
+  total: number;
+  used: number;
+  usedLabel: string;
+  icon: React.ElementType;
+  loading: boolean;
+  competence?: string;
+  href?: string;
+}) {
+  const [, navigate] = useLocation();
+  const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+
+  return (
+    <Card
+      className={href ? "cursor-pointer hover:shadow-md transition-shadow select-none" : ""}
+      onClick={href ? () => navigate(href) : undefined}
+    >
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-3">
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+        </div>
+        {loading ? (
+          <>
+            <Skeleton className="h-9 w-40 mb-2" />
+            <Skeleton className="h-4 w-32 mb-2" />
+            <Skeleton className="h-2 w-full" />
+          </>
+        ) : (
+          <>
+            <p className="text-3xl font-bold text-foreground tabular-nums">
+              {formatCurrency(total)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {usedLabel}: <span className="font-medium text-foreground">{formatCurrency(used)}</span>
+            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <Progress value={percent} className="h-2 flex-1" />
+              <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{percent}%</span>
+            </div>
+            {competence && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Competência: <span className="text-foreground">{competence}</span>
+              </p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { activeProfileId } = useProfile();
+  const [, navigate] = useLocation();
   const { year, month } = currentYearMonth();
+  const competenceLabel = `${monthName(month).slice(0, 3)}/${year}`;
 
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({
     profileId: activeProfileId!,
@@ -83,10 +147,9 @@ export default function DashboardPage() {
     limit: 10,
   }, { query: { enabled: !!activeProfileId } });
 
-  const { data: breakdown, isLoading: loadingBreakdown } = useGetCategoryBreakdown({
+  const { data: recentInstallments, isLoading: loadingInstallments } = useGetRecentInstallments({
     profileId: activeProfileId!,
-    year,
-    month,
+    limit: 10,
   }, { query: { enabled: !!activeProfileId } });
 
   if (!activeProfileId) {
@@ -106,8 +169,8 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* KPI Cards — linha 1 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards — linha 1 (Saldo, Despesas, Parcelas) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SummaryCard
           title="Saldo Total"
           value={formatCompact(summary?.totalBalance ?? 0)}
@@ -125,14 +188,6 @@ export default function DashboardPage() {
           href="/credit-cards"
         />
         <SummaryCard
-          title="Cartões (Uso/Limite)"
-          value={formatCompact(summary?.cardsTotalUsed ?? 0)}
-          icon={CreditCard}
-          loading={loadingSummary}
-          sub={summary ? `de ${formatCompact(summary.cardsTotalLimit)}` : undefined}
-          href="/credit-cards"
-        />
-        <SummaryCard
           title="Parcelas (3 meses)"
           value={formatCompact(summary?.futureInstallments ?? 0)}
           icon={Clock}
@@ -141,69 +196,79 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* KPI Cards — linha 2 */}
-      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
-        <SummaryCard
+      {/* KPI Cards — linha 2 (A Pagar, A Receber, Limite) com Progress */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ProgressSummaryCard
           title="A Pagar"
-          value={formatCompact(summary?.monthPaidPayables ?? 0)}
+          total={summary?.monthTotalPayables ?? 0}
+          used={summary?.monthPaidPayables ?? 0}
+          usedLabel="Pago"
           icon={TrendingDown}
           loading={loadingSummary}
-          color="text-yellow-500"
-          sub={summary ? `de ${formatCurrency(summary.monthTotalPayables)}` : undefined}
+          competence={competenceLabel}
           href="/accounts-payable"
         />
-        <SummaryCard
+        <ProgressSummaryCard
           title="A Receber"
-          value={formatCompact(summary?.monthReceivedReceivables ?? 0)}
+          total={summary?.monthTotalReceivables ?? 0}
+          used={summary?.monthReceivedReceivables ?? 0}
+          usedLabel="Recebido"
           icon={TrendingUp}
           loading={loadingSummary}
-          color="text-blue-500"
-          sub={summary ? `de ${formatCurrency(summary.monthTotalReceivables)}` : undefined}
+          competence={competenceLabel}
           href="/accounts-receivable"
+        />
+        <ProgressSummaryCard
+          title="Limite de Cartão"
+          total={summary?.cardsTotalLimit ?? 0}
+          used={summary?.cardsTotalUsed ?? 0}
+          usedLabel="Usado"
+          icon={CreditCard}
+          loading={loadingSummary}
+          href="/credit-cards"
         />
       </div>
 
       {/* Charts + lists */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Category breakdown */}
+        {/* Últimas Parcelas */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-sm">Gastos por Categoria</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Layers className="w-4 h-4 text-primary" />
+              Últimas Parcelas
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {loadingBreakdown ? (
+            {loadingInstallments ? (
               <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
-            ) : breakdown && breakdown.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie data={breakdown} dataKey="total" nameKey="categoryName" cx="50%" cy="50%" outerRadius={80}>
-                      {breakdown.map((entry, i) => (
-                        <Cell key={entry.categoryName} fill={entry.color ?? CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-1.5 mt-2">
-                  {breakdown.slice(0, 5).map((item, i) => (
-                    <div key={item.categoryName} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ background: item.color ?? CHART_COLORS[i % CHART_COLORS.length] }}
-                        />
-                        <span className="text-foreground truncate max-w-28">{item.categoryName}</span>
-                      </div>
-                      <span className="text-muted-foreground">{item.percentage}%</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+            ) : recentInstallments && recentInstallments.length > 0 ? (
+              <div className="space-y-2">
+                {recentInstallments.map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => navigate("/credit-cards")}
+                    className="w-full text-left p-2 rounded hover:bg-muted/50 transition-colors group"
+                  >
+                    <p className="text-sm font-medium text-foreground truncate group-hover:text-primary">
+                      {item.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      Parcela {item.currentInstallment}/{item.totalInstallments} · {formatCurrency(Math.abs(item.amount))}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {item.cardName ?? "Cartão"} · {item.categoryName ?? "Sem categoria"}
+                    </p>
+                  </button>
+                ))}
+              </div>
             ) : (
-              <p className="text-muted-foreground text-sm text-center py-8">Sem dados</p>
+              <p className="text-muted-foreground text-sm text-center py-8">
+                Nenhuma parcela próxima do fim
+              </p>
             )}
           </CardContent>
         </Card>

@@ -1453,6 +1453,33 @@ paths:
                 items:
                   $ref: "#/components/schemas/UpcomingBill"
 
+  /dashboard/recent-installments:
+    get:
+      operationId: getRecentInstallments
+      tags: [dashboard]
+      summary: Get installment transactions close to ending (max 3 last installments)
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent installments (close to ending)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecentInstallmentItem"
+
   /dashboard/category-breakdown:
     get:
       operationId: getCategoryBreakdown
@@ -2785,6 +2812,28 @@ components:
         sourceName:
           type: ["string", "null"]
       required: [id, date, description, amount, type]
+
+    RecentInstallmentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+        currentInstallment:
+          type: integer
+        totalInstallments:
+          type: integer
+        cardName:
+          type: ["string", "null"]
+        categoryName:
+          type: ["string", "null"]
+      required: [id, description, amount, date, currentInstallment, totalInstallments]
 
     CashFlowMonth:
       type: object

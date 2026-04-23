@@ -12,6 +12,8 @@ import {
   GetUpcomingBillsResponse,
   GetCategoryBreakdownQueryParams,
   GetCategoryBreakdownResponse,
+  GetRecentInstallmentsQueryParams,
+  GetRecentInstallmentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/authMiddleware";
 import { assertProfileOwnership, type AuthRequest } from "../lib/auth";
@@ -137,18 +139,23 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
 
   let cardsTotalUsed = 0;
   let cardsTotalLimit = 0;
+  // Used = open invoices + future installments (not yet billed) + non-billed transactions,
+  // i.e. anything that consumes credit but has not been paid yet. Cancelled excluded.
   for (const card of cards) {
     cardsTotalLimit += Number(card.creditLimit);
     const [usedRow] = await db
       .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
       .from(cardTransactionsTable)
-      .innerJoin(invoicesTable, eq(cardTransactionsTable.invoiceId, invoicesTable.id))
+      .leftJoin(invoicesTable, eq(cardTransactionsTable.invoiceId, invoicesTable.id))
       .where(
         and(
           eq(cardTransactionsTable.cardId, card.id),
-          eq(invoicesTable.year, year),
-          eq(invoicesTable.month, month),
           sql`${cardTransactionsTable.amount} < 0`,
+          sql`${cardTransactionsTable.status} != 'cancelled'`,
+          or(
+            sql`${cardTransactionsTable.invoiceId} IS NULL`,
+            sql`${invoicesTable.status} != 'paid'`,
+          ),
         )
       );
     cardsTotalUsed += Number(usedRow?.total ?? 0);
@@ -403,6 +410,62 @@ router.get("/dashboard/upcoming-bills", requireAuth, async (req, res): Promise<v
   ].sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
   res.json(GetUpcomingBillsResponse.parse(items));
+});
+
+router.get("/dashboard/recent-installments", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthRequest;
+  const parsed = GetRecentInstallmentsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { profileId, limit = 10 } = parsed.data;
+  if (!(await assertProfileOwnership(res, clerkUserId, profileId))) return;
+
+  const rows = await db
+    .select({
+      id: cardTransactionsTable.id,
+      description: cardTransactionsTable.description,
+      amount: cardTransactionsTable.amount,
+      date: cardTransactionsTable.date,
+      currentInstallment: cardTransactionsTable.installmentNumber,
+      totalInstallments: cardTransactionsTable.totalInstallments,
+      cardName: creditCardsTable.name,
+      categoryName: categoriesTable.name,
+    })
+    .from(cardTransactionsTable)
+    .innerJoin(creditCardsTable, eq(cardTransactionsTable.cardId, creditCardsTable.id))
+    .leftJoin(categoriesTable, eq(cardTransactionsTable.categoryId, categoriesTable.id))
+    .where(
+      and(
+        eq(cardTransactionsTable.profileId, profileId),
+        eq(cardTransactionsTable.isInstallment, true),
+        sql`${cardTransactionsTable.status} != 'cancelled'`,
+        eq(creditCardsTable.isActive, true),
+        sql`${cardTransactionsTable.totalInstallments} IS NOT NULL`,
+        sql`${cardTransactionsTable.installmentNumber} IS NOT NULL`,
+        sql`(${cardTransactionsTable.totalInstallments} - ${cardTransactionsTable.installmentNumber}) <= 2`,
+        sql`(${cardTransactionsTable.totalInstallments} - ${cardTransactionsTable.installmentNumber}) >= 0`,
+      )
+    )
+    .orderBy(
+      sql`(${cardTransactionsTable.totalInstallments} - ${cardTransactionsTable.installmentNumber}) ASC`,
+      cardTransactionsTable.date,
+    )
+    .limit(limit);
+
+  const result = rows.map(r => ({
+    id: r.id,
+    description: r.description,
+    amount: Number(r.amount),
+    date: r.date,
+    currentInstallment: Number(r.currentInstallment ?? 0),
+    totalInstallments: Number(r.totalInstallments ?? 0),
+    cardName: r.cardName ?? null,
+    categoryName: r.categoryName ?? null,
+  }));
+
+  res.json(GetRecentInstallmentsResponse.parse(result));
 });
 
 router.get("/dashboard/category-breakdown", requireAuth, async (req, res): Promise<void> => {

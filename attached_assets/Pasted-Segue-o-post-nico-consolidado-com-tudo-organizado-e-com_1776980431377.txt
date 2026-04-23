@@ -1,0 +1,560 @@
+Segue o **post único consolidado**, com **tudo organizado e com exemplos visuais incluídos**, pronto para enviar ao Replit Agent.
+
+---
+
+# Ajustes na Dashboard e Parcelamentos — Cards, Seção "Últimas Parcelas" e Ação "Definir parcela"
+
+## Páginas afetadas
+
+* `/dashboard`
+* `/credit-cards`
+
+---
+
+# PARTE 1 — Ajuste de Layout dos Cards "A Pagar", "A Receber" e "Limite de Cartão"
+
+**Página afetada:**
+`/dashboard`
+
+**Cards afetados:**
+
+* A Pagar
+* A Receber
+* Limite de Cartão
+
+Não alterar outros KPIs.
+
+---
+
+# Objetivo
+
+Padronizar os cards financeiros com:
+
+* Valor total em destaque
+* Valor utilizado/pago/recebido como secundário
+* Barra de progresso visual
+* Leitura clara e intuitiva
+* Melhor entendimento do quanto já foi pago ou utilizado
+
+---
+
+# Layout padrão obrigatório (para os 3 cards)
+
+## Linha 1 — Título
+
+Manter:
+
+* A Pagar
+* A Receber
+* Limite de Cartão
+
+---
+
+## Linha 2 — Valor principal (TOTAL)
+
+Este deve ser o maior elemento visual.
+
+### A Pagar:
+
+R$ {total_a_pagar}
+
+### A Receber:
+
+R$ {total_a_receber}
+
+### Limite de Cartão:
+
+R$ {limite_total_cartoes}
+
+Regras:
+
+* Maior fonte do card
+* Não usar abreviação com "k"
+* Sempre exibir valor completo
+* Formatação monetária brasileira
+
+---
+
+## Linha 3 — Valor secundário
+
+### A Pagar:
+
+Pago: R$ {valor_pago}
+
+### A Receber:
+
+Recebido: R$ {valor_recebido}
+
+### Limite de Cartão:
+
+Usado: R$ {valor_usado_limite}
+
+Regras:
+
+* Fonte menor
+* Cor secundária
+* Não usar abreviação
+
+---
+
+## Linha 4 — Barra de progresso
+
+Adicionar barra `Progress` (shadcn/ui).
+
+### Cálculo:
+
+A Pagar:
+
+percentual = valor_pago / total × 100
+
+A Receber:
+
+percentual = valor_recebido / total × 100
+
+Limite:
+
+percentual = valor_usado_limite / limite_total × 100
+
+Mostrar percentual ao lado.
+
+---
+
+# Cálculo obrigatório do uso do limite
+
+O valor **usado do limite** deve considerar:
+
+* Parcelas atuais
+* Parcelas futuras
+* Faturas abertas
+* Compras parceladas
+
+Fonte:
+
+* `card_transactions`
+* `card_installments`
+
+Regras:
+
+* Ignorar canceladas
+* Considerar apenas cartões ativos
+* Somar parcelas futuras corretamente
+
+---
+
+# Exemplo visual obrigatório dos Cards
+
+## Card — A Pagar
+
+Exemplo visual esperado:
+
+A Pagar
+
+R$ 3.100,00
+
+Pago: R$ 1.500,00
+
+[██████░░░░░░░░░] 48%
+
+Competência: Abr/2026
+
+---
+
+## Card — A Receber
+
+Exemplo visual esperado:
+
+A Receber
+
+R$ 4.500,00
+
+Recebido: R$ 2.200,00
+
+[████████░░░░░░░] 49%
+
+Competência: Abr/2026
+
+---
+
+## Card — Limite de Cartão
+
+Exemplo visual esperado:
+
+Limite de Cartão
+
+R$ 8.000,00
+
+Usado: R$ 3.200,00
+
+[██████░░░░░░░░░] 40%
+
+(Este card não precisa mostrar competência)
+
+---
+
+# Regras visuais obrigatórias
+
+* Valor total deve ser o maior texto
+* Barra deve ficar abaixo do valor secundário
+* Percentual deve aparecer ao lado da barra
+* Competência aparece apenas em:
+
+  * A Pagar
+  * A Receber
+* Não usar abreviação "k" nesses três cards
+
+---
+
+# Casos de borda
+
+Se total = 0:
+
+Mostrar:
+
+R$ 0,00
+Pago: R$ 0,00
+
+Progress = 0%
+
+---
+
+Se usado > total:
+
+Limitar percentual em:
+
+100%
+
+---
+
+Se não houver cartões:
+
+Mostrar:
+
+R$ 0,00
+Usado: R$ 0,00
+
+---
+
+# PARTE 2 — Remover "Gastos por Categoria" e criar "Últimas Parcelas"
+
+**Página afetada:**
+`/dashboard`
+
+---
+
+# Remover seção antiga
+
+Remover completamente:
+
+* Seção **Gastos por Categoria**
+* Gráfico relacionado
+* Queries vinculadas
+
+---
+
+# Criar nova seção
+
+Título:
+
+# **Últimas Parcelas**
+
+Objetivo:
+
+Mostrar parcelamentos que estão próximos do fim.
+
+---
+
+# Critério de seleção
+
+Listar apenas transações:
+
+* Parceladas
+* Não canceladas
+* Cartões ativos
+* Nas últimas parcelas
+
+---
+
+# Definição de "Últimas Parcelas"
+
+Considerar:
+
+total_installments - current_installment <= 2
+
+Ou seja:
+
+Mostrar:
+
+* Última
+* Penúltima
+* Antepenúltima
+
+---
+
+# Dados exibidos por item
+
+Cada linha deve mostrar:
+
+* Nome da transação
+* Parcela (ex: 9/10)
+* Valor da parcela
+* Nome do cartão
+* Categoria
+
+Se não houver categoria:
+
+Mostrar:
+
+Sem categoria
+
+---
+
+# Ordenação
+
+Ordem:
+
+1 — Mais próximas do fim
+2 — Data mais próxima
+
+---
+
+# Limite
+
+Máximo:
+
+10 itens
+
+---
+
+# Clique no item
+
+Ao clicar:
+
+Ir para:
+
+`/credit-cards`
+
+---
+
+# Layout visual esperado da lista
+
+Últimas Parcelas
+
+Academia SmartFit
+Parcela 9/10 • R$ 129,90
+Cartão Nubank • Saúde
+
+Internet Vivo
+Parcela 11/12 • R$ 99,90
+Cartão Itaú • Internet
+
+---
+
+# Se não houver dados
+
+Mostrar:
+
+Nenhuma parcela próxima do fim
+
+---
+
+# PARTE 3 — Nova ação "Definir parcela"
+
+**Página afetada:**
+`/credit-cards`
+
+---
+
+# Problema
+
+Existem lançamentos parcelados que não são identificados automaticamente.
+
+Precisa existir uma forma manual de definir parcelamento.
+
+---
+
+# Nova ação
+
+Adicionar ação:
+
+**Definir parcela**
+
+Disponível em:
+
+* Menu de ações da transação
+  ou
+* Botão na linha
+
+---
+
+# Regra de exibição
+
+Mostrar:
+
+Quando a transação **não possui parcelamento definido**.
+
+Se já possuir:
+
+Abrir modo de edição.
+
+---
+
+# Modal "Definir Número da Parcela"
+
+Título:
+
+Redefinir Número da Parcela
+
+---
+
+# Campos
+
+## Informações (somente leitura)
+
+Mostrar:
+
+* Nome da transação
+* Valor por parcela
+
+---
+
+## Campo 1 — Parcela atual
+
+Tipo:
+
+number
+
+Regras:
+
+* Obrigatório
+* Mínimo: 1
+* Máximo: total
+
+Padrão:
+
+1
+
+---
+
+## Campo 2 — Total de parcelas
+
+Tipo:
+
+number
+
+Regras:
+
+* Obrigatório
+* Mínimo: 2
+* Máximo sugerido: 48
+
+Padrão:
+
+2
+
+---
+
+# Previsão automática
+
+Exibir texto:
+
+Serão geradas **X parcela(s) futura(s)**, uma por mês após esta transação.
+Parcelas já existentes serão ignoradas.
+
+Cálculo:
+
+parcelas_futuras = total - parcela_atual
+
+Atualizar dinamicamente.
+
+---
+
+# Ao confirmar
+
+Executar:
+
+## Atualizar transação atual
+
+Salvar:
+
+* current_installment
+* total_installments
+
+---
+
+## Criar parcelas futuras
+
+Quantidade:
+
+total - current
+
+Para cada parcela:
+
+Criar nova transação:
+
+* Mesmo nome
+* Mesmo valor
+* Mesmo cartão
+* Mesma categoria
+* Data +1 mês
+* Número correto da parcela
+
+---
+
+# Evitar duplicação
+
+Se parcela já existir:
+
+Não recriar.
+
+Criar apenas as faltantes.
+
+---
+
+# Botão Cancelar
+
+Cancelar operação
+Fechar modal
+Sem salvar.
+
+---
+
+# Casos de borda
+
+Se total < atual:
+
+Bloquear.
+
+Mensagem:
+
+Total de parcelas deve ser maior ou igual à parcela atual.
+
+---
+
+Se total = atual:
+
+Não gerar parcelas.
+
+Mostrar:
+
+0 parcelas futuras
+
+---
+
+Se total = 1:
+
+Bloquear.
+
+Parcelamento precisa ter pelo menos 2 parcelas.
+
+---
+
+# Resultado esperado final
+
+Após todos os ajustes:
+
+* Cards financeiros terão leitura clara e profissional
+* Limite de cartão mostrará uso real (incluindo parcelas futuras)
+* Dashboard terá nova seção **Últimas Parcelas**
+* Parcelamentos não identificados poderão ser definidos manualmente
+* O sistema ficará mais confiável para controle real de cartões
+* O usuário terá visão clara do que está pagando, utilizando e finalizando

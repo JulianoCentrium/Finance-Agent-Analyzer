@@ -1,0 +1,243 @@
+Segue o prompt atualizado incluindo também o **card de Limite de Cartão**:
+
+---
+
+# Ajuste de Layout dos Cards "A Pagar", "A Receber" e "Limite de Cartão" na Dashboard
+
+**Página afetada:**
+`/dashboard`
+
+**Componentes afetados:**
+
+* Card **A Pagar**
+* Card **A Receber**
+* Card **Limite de Cartão**
+
+Não alterar outros KPIs.
+
+---
+
+# Objetivo do ajuste
+
+Padronizar os cards financeiros para seguir a mesma lógica visual:
+
+* O **valor total** deve ser o destaque principal
+* O **valor já utilizado/pago/recebido** deve aparecer como secundário
+* Adicionar **barra de progresso**
+* Melhorar leitura e entendimento rápido da situação financeira
+
+---
+
+# Layout padrão obrigatório (para os 3 cards)
+
+Todos os cards devem seguir esta estrutura:
+
+## Linha 1 — Título
+
+Manter:
+
+* A Pagar
+* A Receber
+* Limite de Cartão
+
+---
+
+## Linha 2 — Valor principal (TOTAL)
+
+Este deve ser o **maior elemento visual do card**.
+
+### A Pagar:
+
+R$ {total_a_pagar}
+
+### A Receber:
+
+R$ {total_a_receber}
+
+### Limite de Cartão:
+
+R$ {limite_total_cartoes}
+
+Regras:
+
+* Deve ser o maior texto do card
+* Não usar abreviação com "k"
+* Usar formatação monetária brasileira
+* Sempre mostrar valor completo
+
+Exemplo:
+
+R$ 8.500,00
+
+---
+
+## Linha 3 — Valor secundário (status)
+
+### A Pagar:
+
+Pago: R$ {valor_pago}
+
+### A Receber:
+
+Recebido: R$ {valor_recebido}
+
+### Limite de Cartão:
+
+Usado: R$ {valor_usado_limite}
+
+Regras:
+
+* Fonte menor
+* Cor secundária (muted)
+* Não usar abreviação
+
+Exemplo:
+
+Pago: R$ 1.500,00
+
+ou
+
+Usado: R$ 3.200,00
+
+---
+
+## Linha 4 — Barra de progresso
+
+Adicionar barra de progresso usando `Progress` do shadcn/ui.
+
+### Cálculo do percentual
+
+#### A Pagar:
+
+percentual = valor_pago / total × 100
+
+#### A Receber:
+
+percentual = valor_recebido / total × 100
+
+#### Limite de Cartão:
+
+percentual = valor_usado_limite / limite_total × 100
+
+Mostrar percentual ao lado da barra.
+
+Exemplo:
+
+48%
+
+---
+
+# Ajuste obrigatório no Card "Limite de Cartão"
+
+## Problema atual
+
+O card está mostrando apenas:
+
+* Limite total
+
+Mas **não mostra o valor usado**, o que impede o usuário de entender quanto ainda possui disponível.
+
+---
+
+# Novo comportamento obrigatório
+
+O card **Limite de Cartão** deve mostrar:
+
+* Limite total
+* Valor usado
+* Barra de progresso
+* Percentual utilizado
+
+---
+
+# Cálculo do valor usado do limite
+
+O valor **usado do limite** deve considerar:
+
+* Todas as transações de cartão
+* Incluindo **parcelas futuras**
+* Independentemente da competência atual
+
+Ou seja:
+
+Deve somar:
+
+* Parcelas atuais
+* Parcelas futuras
+* Faturas abertas
+* Compras parceladas ainda não vencidas
+
+Fonte de dados:
+
+* `card_transactions`
+* `card_installments`
+
+Regras:
+
+* Ignorar transações canceladas
+* Considerar apenas cartões ativos
+* Somar corretamente todas as parcelas futuras vinculadas
+
+---
+
+# Casos de borda
+
+## Se total = 0
+
+Mostrar:
+
+R$ 0,00
+Pago: R$ 0,00
+
+ou
+
+R$ 0,00
+Usado: R$ 0,00
+
+Barra deve ficar em **0%**
+
+---
+
+## Se valor usado > limite
+
+Limitar:
+
+percentual = 100%
+
+Nunca ultrapassar 100%.
+
+---
+
+## Se não houver cartões cadastrados
+
+Card **Limite de Cartão** deve mostrar:
+
+R$ 0,00
+Usado: R$ 0,00
+
+Sem erro visual.
+
+---
+
+# Padronização visual importante
+
+Aplicar estas regras:
+
+* Não usar abreviação com "k" nesses três cards:
+
+  * A Pagar
+  * A Receber
+  * Limite de Cartão
+
+Esses são valores críticos e devem aparecer completos.
+
+---
+
+# Resultado esperado
+
+Após o ajuste:
+
+* O **valor total** será o destaque principal
+* O **valor já utilizado** será claro e legível
+* A **barra de progresso** mostrará visualmente a situação
+* O **Limite de Cartão** passará a refletir corretamente o uso real do limite considerando parcelas futuras

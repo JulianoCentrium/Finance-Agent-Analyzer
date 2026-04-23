@@ -989,8 +989,9 @@ function CardDetail({ card }: { card: CreditCardType }) {
                   <Input
                     type="number"
                     min={1}
+                    max={setInstTotal}
                     value={setInstCurrent}
-                    onChange={e => setSetInstCurrent(Math.max(1, Number(e.target.value)))}
+                    onChange={e => setSetInstCurrent(Math.max(1, Math.min(setInstTotal, Number(e.target.value))))}
                   />
                 </div>
                 <div>
@@ -998,8 +999,13 @@ function CardDetail({ card }: { card: CreditCardType }) {
                   <Input
                     type="number"
                     min={2}
+                    max={48}
                     value={setInstTotal}
-                    onChange={e => setSetInstTotal(Math.max(2, Number(e.target.value)))}
+                    onChange={e => {
+                      const newTotal = Math.max(2, Math.min(48, Number(e.target.value)));
+                      setSetInstTotal(newTotal);
+                      if (setInstCurrent > newTotal) setSetInstCurrent(newTotal);
+                    }}
                   />
                 </div>
               </div>

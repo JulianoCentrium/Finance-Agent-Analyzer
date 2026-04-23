@@ -50,6 +50,7 @@ import type {
   GetCategoryBreakdownParams,
   GetDashboardSummaryParams,
   GetInstallmentPurchasesReportParams,
+  GetRecentInstallmentsParams,
   GetRecentTransactionsParams,
   GetUpcomingBillsParams,
   HealthStatus,
@@ -77,6 +78,7 @@ import type {
   Person,
   Profile,
   ReceiveAccountBody,
+  RecentInstallmentItem,
   RecentTransaction,
   RecurrenceInfo,
   ReviewFailedQuestionBody,
@@ -6144,6 +6146,112 @@ export function useGetUpcomingBills<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetUpcomingBillsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get installment transactions close to ending (max 3 last installments)
+ */
+export const getGetRecentInstallmentsUrl = (
+  params: GetRecentInstallmentsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/dashboard/recent-installments?${stringifiedParams}`
+    : `/api/dashboard/recent-installments`;
+};
+
+export const getRecentInstallments = async (
+  params: GetRecentInstallmentsParams,
+  options?: RequestInit,
+): Promise<RecentInstallmentItem[]> => {
+  return customFetch<RecentInstallmentItem[]>(
+    getGetRecentInstallmentsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetRecentInstallmentsQueryKey = (
+  params?: GetRecentInstallmentsParams,
+) => {
+  return [
+    `/api/dashboard/recent-installments`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetRecentInstallmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecentInstallments>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetRecentInstallmentsParams,
+  options?: {
+    query?: Omit<UseQueryOptions<
+      Awaited<ReturnType<typeof getRecentInstallments>>,
+      TError,
+      TData
+    >, 'queryKey'> & { queryKey?: QueryKey };
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRecentInstallmentsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRecentInstallments>>
+  > = ({ signal }) =>
+    getRecentInstallments(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRecentInstallments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRecentInstallmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecentInstallments>>
+>;
+export type GetRecentInstallmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get installment transactions close to ending (max 3 last installments)
+ */
+
+export function useGetRecentInstallments<
+  TData = Awaited<ReturnType<typeof getRecentInstallments>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetRecentInstallmentsParams,
+  options?: {
+    query?: Omit<UseQueryOptions<
+      Awaited<ReturnType<typeof getRecentInstallments>>,
+      TError,
+      TData
+    >, 'queryKey'> & { queryKey?: QueryKey };
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRecentInstallmentsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
