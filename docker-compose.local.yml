@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cofinance
+      POSTGRES_USER: cofinance
+      POSTGRES_PASSWORD: cofinance123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cofinance_net
+
+  migrator:
+    image: julianocentrium/cofinance-migrator:1.0.0
+    environment:
+      DATABASE_URL: postgresql://cofinance:cofinance123@postgres:5432/cofinance
+    depends_on:
+      - postgres
+    networks:
+      - cofinance_net
+
+  api-server:
+    image: julianocentrium/cofinance-api-server:1.0.0
+    environment:
+      NODE_ENV: development
+      PORT: 8080
+      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://cofinance:cofinance123@postgres:5432/cofinance
+      CLERK_SECRET_KEY: sk_test_NYzbmRl5hz3DMrezS2aHR3SmQgyNBmToDZID9D1tne
+      ALLOWED_ORIGINS: http://localhost:8190
+    depends_on:
+      - postgres
+    networks:
+      - cofinance_net
+
+  web:
+    image: julianocentrium/cofinance-web:1.0.0
+    depends_on:
+      - api-server
+    ports:
+      - "8190:8080"
+    networks:
+      - cofinance_net
+
+networks:
+  cofinance_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

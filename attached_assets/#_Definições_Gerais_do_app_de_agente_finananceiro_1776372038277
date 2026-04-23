@@ -1,0 +1,323 @@
+# Preciso de um app de agente finananceiro
+Tem como objetivo organizar as finanças pessoais, ter um fluxo de caixa eficiente, a principal fonte de dados é importação de dados do banco.
+
+## arquitetura
+vai ser web responsivo para usar desktop celular,  banco em SQL server
+precisa poder escolher thema claro com azul ou verde ou escuro com azul, verde considere templates consolidados
+a aplicação precisa ter um tenant o usuário loga, e escolhe o perfil sendo assim na estrutua, de tudo tem usuário e o perfil do usuário.
+se usuário tem um perfil já loga direto sem escolher perfil
+
+
+##  Como vai funcionar 
+
+Vai existir as entidades:
+### Cartões de crédito
+O cartão de crédito registra todas as despesas, do mes e gera um pagamento para o mes seguinte, indica que trabalha por competencia
+Ele tem nome do banco, dia de fechamento e dia de vencimento
+Quando chega o dia de fechamento, automaticamente soma todas lançamentos do cartão e gera um registro no "Contas à Pagar"
+
+#### as transações do cartão de credito terão a seguinte origem:
+1 - Importando de um CSV ou ofx: na importação sempre vem selecionado o mes atual, isso só aparece na tela e pode mudar, ao importar sempre vai apagar todos registros da competencia e importar de novo.
+nunca jamais,  pode apagar dados de um competencia fechada,  se cliquei em fechar o mes do cartão não pode ter mais importação ou inclusão manual,  observer q precisa identificar o que é lançamento manual e importado  pq vou importar o mesmo arquivo muitas vezes 
+no mes, e não pode ter registro duplicado.
+
+outro detalhe,  sempre que importar o arquivo de um cartão de crédito gerar um conta a pagar,  se já tiver gerado só atualiza,  sempre tem q bater com o do arquivo e não pode gerar duplicidade em competencia.
+
+2 - Digitando manualmente: usário pode incluir, para alterar ou excluir um registro só pode ser a origem for digitado
+
+3 - Geração autmática de parcelas,  quando um registro tiver na descrição  informação da parcela gerar registro para todas competencias
+Exemplo '...Parcela 2/3'  gera para o mes q está importando e para o proximo
+Exemplo '..Parcela 1/15'  gera para o mes q está importando e mais 14 registros para as competencias(mes) seguintes
+este item é fundamental o mais importante para conseguir montar o fluxo de caixa, 
+
+precisa ter eficiencia para identificar termos como 
+'..Parcela 1/15'
+'.. Parcela 1/15'
+'.. Par1/15'
+'.. Par 1/15'
+'.. Par.1/15'
+sendo assim temos que ter a parcela gravada
+
+### Tipo de Compromisso
+cadastro para ajudar identificar os tipos de pagamentos, este fica somente associado ao contas a pagar e receber
+ja deve inicar o projeto pre-preenchido
+- À Vista  
+  Pagamento único, realizado em uma única vez.
+
+- Parcelado  
+  Pagamento dividido em várias parcelas com data final definida.  
+  Ex: compras no cartão, financiamento curto.
+
+- Recorrente  
+  Conta que se repete automaticamente sem prazo definido.  
+  Ex: assinatura, mensalidade escolar contínua.
+
+- Temporário  
+  Conta recorrente por tempo limitado.  
+  Ex: curso com duração definida, tratamento médico.
+
+- Eventual  
+  Conta sem periodicidade definida.  
+  Ex: consertos, compras inesperadas.
+
+- Fixo  
+  Conta com valor previsível.  
+  Ex: financiamento, mensalidade escolar.
+
+- Variável  
+  Conta cujo valor muda a cada período.  
+  Ex: energia elétrica, fatura do cartão.
+
+- Anual  
+  Conta que ocorre uma vez por ano.  
+  Ex: IPVA, IPTU, seguro anual.
+
+- Semestral  
+  Conta que ocorre a cada seis meses.
+
+## Tipos Técnicos (Controle do Sistema)
+
+- Ajuste  
+  Utilizado para correções de valores ou lançamentos.
+
+- Estorno  
+  Utilizado para cancelamento ou devolução de valores.
+
+### Categoria das desepesas do cartão, contas a pagar e receber
+
+1 - Origem das categorias: 
+tem q ter status de ativo e inativo
+e inicia pre-preenchido
+# Categorias de Gastos - Família Classe Média
+
+## 🏠 Moradia
+- Aluguel
+- Financiamento Imobiliário
+- Condomínio
+- IPTU
+- Energia Elétrica
+- Água e Esgoto
+- Gás
+- Internet Residencial
+- TV por Assinatura
+- Manutenção da Casa
+- Reparos e Reformas
+- Material de Limpeza
+- Segurança Residencial (alarme, monitoramento)
+
+## 🛒 Alimentação
+- Supermercado
+- Padaria
+- Açougue
+- Hortifruti
+- Restaurantes
+- Lanches e Delivery
+- Cafés e Lanches Rápidos
+
+## 🚗 Transporte
+- Combustível
+- Financiamento de Veículo
+- Seguro do Veículo
+- IPVA
+- Licenciamento
+- Manutenção do Veículo
+- Estacionamento
+- Pedágios
+- Transporte Público
+- Aplicativos de Transporte (Uber, 99, etc.)
+
+## 🎓 Educação
+- Mensalidade Escolar
+- Material Escolar
+- Uniforme Escolar
+- Transporte Escolar
+- Cursos Extras (idiomas, reforço, etc.)
+- Faculdade
+- Livros
+
+## 💳 Cartão de Crédito
+- Fatura Cartão Principal
+- Fatura Cartão Adicional
+- Compras Parceladas
+- Juros e Encargos
+
+## 🏦 Financiamentos e Dívidas
+- Financiamento Imobiliário
+- Financiamento Veicular
+- Empréstimos Pessoais
+- Consórcios
+- Parcelamentos Diversos
+
+## 🏥 Saúde
+- Plano de Saúde
+- Consultas Médicas
+- Exames
+- Medicamentos
+- Dentista
+- Terapias
+- Óculos e Lentes
+
+## 👕 Despesas Pessoais
+- Roupas
+- Calçados
+- Acessórios
+- Cabeleireiro / Barbearia
+- Estética
+- Cosméticos
+- Academia
+
+## 👶 Filhos
+- Creche
+- Escola
+- Atividades Extracurriculares
+- Lazer Infantil
+- Mesada
+- Brinquedos
+- Roupas Infantis
+
+## 📱 Comunicação e Tecnologia
+- Telefonia Móvel
+- Internet Móvel
+- Assinaturas Digitais (Netflix, Spotify, etc.)
+- Softwares e Aplicativos
+- Compra de Equipamentos (celular, notebook)
+
+## 🎉 Lazer e Entretenimento
+- Cinema
+- Passeios
+- Viagens
+- Hotéis
+- Parques
+- Eventos
+- Jogos
+- Streaming
+
+## 🐶 Animais de Estimação
+- Ração
+- Veterinário
+- Medicamentos
+- Banho e Tosa
+- Acessórios
+
+## 🎁 Presentes e Doações
+- Presentes
+- Datas Comemorativas
+- Doações
+- Contribuições Religiosas
+
+## 🧾 Impostos e Taxas
+- Imposto de Renda
+- Taxas Bancárias
+- Multas
+- Custas Cartoriais
+
+## 💼 Trabalho e Profissional
+- Cursos Profissionais
+- Certificações
+- Equipamentos de Trabalho
+- Deslocamento Profissional
+
+## 💰 Investimentos e Poupança
+- Poupança
+- Investimentos
+- Previdência Privada
+- Reserva de Emergência
+
+## 🧯 Seguros
+- Seguro de Vida
+- Seguro Residencial
+- Seguro Veicular
+- Outros Seguros
+
+## 🧺 Despesas Domésticas
+- Empregada Doméstica
+- Diarista
+- Lavanderia
+- Manutenção de Eletrodomésticos
+
+## 📦 Compras Gerais
+- Eletrodomésticos
+- Móveis
+- Utensílios Domésticos
+- Decoração
+
+## 📊 Ajustes Financeiros
+- Juros Pagos
+- Multas
+- Tarifas Bancárias
+- Ajustes Contábeis
+
+## ❓ Outros
+- Despesas Eventuais
+- Gastos Não Classificados
+
+*as categorias, podem ser associadas a um registro de cartão de credito a qq instante*
+
+### Contas a pagar
+
+1 - Pode ser cadastrada manualmente
+
+2 - Quando fechar uma competencia do cartão vai ter um registro de origem do cartão
+
+
+Campos básicos
+conta bancária, Emissão, vencimento, pessoa, vencimento, pagamento,  observações,  cartão
+Pode ou não ser associado a uma categoria
+tem o campo Natureza : 'Cartão', 'Financiamento', 'Digitado'
+
+registros podem ser editáveis, ou excluidos
+
+Ao cadastrar precisa ter opção de repetir por mÊs, gera parcelas conforme a repetição
+
+um registro do contas a pagar nunca pode gerar 2 pagamentos no mesmo mes, bloqueia e avisa.
+
+### contas bancária
+Nome, código bacen, agencia,  conta, saldo e saldo inicial, ativo
+o saldo da conta é a soma do saldo inicial + todas contas recebidas - contas pagas
+
+
+
+### contas a receber
+Cadastro manual 
+não tem importação e pode ser associado a uma categoria, pessoa, conta bancária
+para baixar uma conta recebida é preciso estar associado a uma conta bancária,  pode cadastrar mas não pode baixar
+
+Ao cadastrar precisa ter opção de repetir por mÊs, gera parcelas conforme a repetição
+
+não tem importação, pode fazer o crud básico
+
+### Pessoa/Empresa
+Cadastro básico com: Nome, tipo(fisica/juridica), CPF/cnpj fone, email, cep, logradouro, numero, complemento
+
+se forn fisica informa cpf,  se for juridica cnpj
+
+
+### Relatórios
+#### fluxo de caixa conta bancaria mensa ou anual
+deve ser um gráfico com 3 linhas:
+Saldo, Entradas e saídas 
+as colunas são dias quando exibir do mes, e mes quando exibir mensal
+deve ter seleção de contas, e tipo de compromisso
+
+#### Analise Cartões
+Deve listar: data, cartão, categoria, descrição e valor
+filtros: mes, categoria, cartão
+deve ter totalizador de do mes,  e também um totalizador de tudo que termina de pagar no mes
+
+
+## Copiloto
+vai utilizar uma chave do openrouter
+vai funcionar a partir de um chat, 
+deve responder perguntas como
+qual a previsão de saldo para este mes?
+em que dia comprei na shoppe,  deve olhar no contas a pagar e tbm na transações de cartão.
+deve saber me responder qual a media mensal por tipo de compromisso
+esqueci de pagar Energia algum mes?
+em que mes posso gastar 2000,00 sem saldo ficar negativo, 
+estes são exemplos para preparar o copiloto
+
+
+
+
+
+

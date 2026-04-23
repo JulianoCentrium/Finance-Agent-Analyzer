@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1.7
+# ---- Stage 1: dependencies + build ---------------------------------------
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache libc6-compat python3 make g++ \
+    && corepack enable
+
+WORKDIR /workspace
+
+# Copy lockfile and workspace manifests first to maximize layer cache.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY artifacts/api-server/package.json artifacts/api-server/package.json
+COPY lib/db/package.json lib/db/package.json
+COPY lib/api-zod/package.json lib/api-zod/package.json
+COPY lib/api-client-react/package.json lib/api-client-react/package.json
+COPY lib/api-spec/package.json lib/api-spec/package.json
+COPY scripts/package.json scripts/package.json
+
+# Install only the api-server dependency closure.
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile \
+        --filter "@workspace/api-server..." \
+        --filter "@workspace/db..."
+
+# Copy sources for the api-server and its workspace deps.
+COPY artifacts/api-server artifacts/api-server
+COPY lib/db lib/db
+COPY lib/api-zod lib/api-zod
+COPY lib/api-spec lib/api-spec
+
+# Bundle the api-server with esbuild → dist/index.mjs (single file).
+RUN pnpm --filter @workspace/api-server run build
+
+# ---- runtime ----
+# ---- runtime ----
+FROM node:20-alpine
+
+RUN apk add --no-cache tini
+
+WORKDIR /workspace
+
+# copiar aplicação inteira
+COPY --from=builder /workspace /workspace
+
+EXPOSE 8080
+
+ENTRYPOINT ["/sbin/tini", "--"]
+
+CMD ["node", "artifacts/api-server/dist/index.mjs"]

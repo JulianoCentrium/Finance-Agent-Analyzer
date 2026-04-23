@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# Run-once container that applies the Drizzle schema and the SQL views.
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache libc6-compat python3 make g++ \
+    && corepack enable
+
+WORKDIR /workspace
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY lib/db/package.json lib/db/package.json
+COPY lib/api-zod/package.json lib/api-zod/package.json
+COPY scripts/package.json scripts/package.json
+
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --filter "@workspace/db..."
+
+COPY lib/db lib/db
+COPY lib/api-zod lib/api-zod
+
+# ---- Runtime: still has node + the source for drizzle-kit -----------------
+FROM node:20-alpine AS runtime
+RUN apk add --no-cache tini && corepack enable
+
+WORKDIR /workspace
+COPY --from=builder /workspace .
+
+ENV NODE_ENV=production
+
+ENTRYPOINT ["/sbin/tini", "--"]
+# Push the Drizzle schema (use --force on first deploy if the DB is empty),
+# then apply the CREATE OR REPLACE VIEW statements from migrations/.
+CMD ["sh", "-c", "pnpm --filter @workspace/db run push && pnpm --filter @workspace/db run apply-views"]

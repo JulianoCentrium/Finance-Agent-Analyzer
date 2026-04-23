@@ -1,0 +1,3050 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: CO-Finance - Personal Finance API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: users
+    description: Authenticated user account management
+  - name: profiles
+    description: User profiles (multi-tenant)
+  - name: categories
+    description: Transaction categories
+  - name: commitment-types
+    description: Bill commitment types
+  - name: persons
+    description: People and companies
+  - name: bank-accounts
+    description: Bank accounts
+  - name: credit-cards
+    description: Credit cards
+  - name: invoices
+    description: Monthly credit card invoices
+  - name: card-transactions
+    description: Credit card transactions
+  - name: accounts-payable
+    description: Bills to pay
+  - name: accounts-receivable
+    description: Bills to receive
+  - name: import-logs
+    description: Import history logs
+  - name: category-rules
+    description: Auto-categorization rules
+  - name: card-installments
+    description: Credit card installment groups
+  - name: dashboard
+    description: Dashboard summary data
+  - name: ai
+    description: AI copilot inspection (failed-question learning)
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── Profiles ──────────────────────────────────────────────────────────────
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List profiles for the authenticated user
+      responses:
+        "200":
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Profile"
+    post:
+      operationId: createProfile
+      tags: [profiles]
+      summary: Create a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /profiles/{id}:
+    get:
+      operationId: getProfile
+      tags: [profiles]
+      summary: Get a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProfile
+      tags: [profiles]
+      summary: Update a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+    delete:
+      operationId: deleteProfile
+      tags: [profiles]
+      summary: Delete a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Profile not found
+        "409":
+          description: Profile contains financial data and cannot be deleted
+
+  # ── Categories ─────────────────────────────────────────────────────────────
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List categories
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Categories list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      tags: [categories]
+      summary: Get a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Commitment Types ────────────────────────────────────────────────────────
+  /commitment-types:
+    get:
+      operationId: listCommitmentTypes
+      tags: [commitment-types]
+      summary: List commitment types
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Commitment types list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommitmentType"
+    post:
+      operationId: createCommitmentType
+      tags: [commitment-types]
+      summary: Create a commitment type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommitmentTypeBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommitmentType"
+
+  /commitment-types/{id}:
+    get:
+      operationId: getCommitmentType
+      tags: [commitment-types]
+      summary: Get a commitment type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Commitment type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommitmentType"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCommitmentType
+      tags: [commitment-types]
+      summary: Update a commitment type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommitmentTypeBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommitmentType"
+    delete:
+      operationId: deleteCommitmentType
+      tags: [commitment-types]
+      summary: Delete a commitment type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Persons ─────────────────────────────────────────────────────────────────
+  /persons:
+    get:
+      operationId: listPersons
+      tags: [persons]
+      summary: List persons/companies
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Persons list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Person"
+    post:
+      operationId: createPerson
+      tags: [persons]
+      summary: Create a person/company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePersonBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+
+  /persons/{id}:
+    get:
+      operationId: getPerson
+      tags: [persons]
+      summary: Get a person
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePerson
+      tags: [persons]
+      summary: Update a person
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePersonBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+    delete:
+      operationId: deletePerson
+      tags: [persons]
+      summary: Delete a person
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Bank Accounts ───────────────────────────────────────────────────────────
+  /bank-accounts:
+    get:
+      operationId: listBankAccounts
+      tags: [bank-accounts]
+      summary: List bank accounts
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bank accounts list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BankAccount"
+    post:
+      operationId: createBankAccount
+      tags: [bank-accounts]
+      summary: Create a bank account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBankAccountBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccount"
+
+  /bank-accounts/{id}:
+    get:
+      operationId: getBankAccount
+      tags: [bank-accounts]
+      summary: Get a bank account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bank account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccount"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBankAccount
+      tags: [bank-accounts]
+      summary: Update a bank account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBankAccountBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccount"
+    delete:
+      operationId: deleteBankAccount
+      tags: [bank-accounts]
+      summary: Delete a bank account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Credit Cards ────────────────────────────────────────────────────────────
+  /credit-cards:
+    get:
+      operationId: listCreditCards
+      tags: [credit-cards]
+      summary: List credit cards
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Credit cards list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditCard"
+    post:
+      operationId: createCreditCard
+      tags: [credit-cards]
+      summary: Create a credit card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCreditCardBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCard"
+
+  /credit-cards/{id}:
+    get:
+      operationId: getCreditCard
+      tags: [credit-cards]
+      summary: Get a credit card
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Credit card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCard"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCreditCard
+      tags: [credit-cards]
+      summary: Update a credit card
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCreditCardBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCard"
+    delete:
+      operationId: deleteCreditCard
+      tags: [credit-cards]
+      summary: Delete a credit card
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Invoices ────────────────────────────────────────────────────────────────
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List invoices for a card
+      parameters:
+        - name: cardId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoices list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Create an invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "409":
+          description: Duplicate invoice for card+year+month
+
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [invoices]
+      summary: Get an invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateInvoice
+      tags: [invoices]
+      summary: Update an invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceRequest"
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteInvoice
+      tags: [invoices]
+      summary: Delete an invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  # ── Card Transactions ───────────────────────────────────────────────────────
+  /card-transactions:
+    get:
+      operationId: listCardTransactions
+      tags: [card-transactions]
+      summary: List card transactions
+      parameters:
+        - name: invoiceId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: cardId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: profileId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transactions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardTransaction"
+    post:
+      operationId: createCardTransaction
+      tags: [card-transactions]
+      summary: Create a card transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardTransactionBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardTransaction"
+
+  /card-transactions/{id}:
+    get:
+      operationId: getCardTransaction
+      tags: [card-transactions]
+      summary: Get a card transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Card transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardTransaction"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCardTransaction
+      tags: [card-transactions]
+      summary: Update a card transaction (e.g. change category)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCardTransactionBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardTransaction"
+    delete:
+      operationId: deleteCardTransaction
+      tags: [card-transactions]
+      summary: Delete a card transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /card-transactions/import:
+    post:
+      operationId: importCardTransactions
+      tags: [card-transactions]
+      summary: Import CSV or OFX file for a card and month
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportCardTransactionsBody"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+
+  /card-transactions/{id}/generate-installments:
+    post:
+      operationId: generateCardTransactionInstallments
+      tags: [card-transactions]
+      summary: Generate future installments for an existing card transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInstallmentsBody"
+      responses:
+        "200":
+          description: Generated installments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateInstallmentsResponse"
+
+  # ── Accounts Payable ────────────────────────────────────────────────────────
+  /accounts-payable:
+    get:
+      operationId: listAccountsPayable
+      tags: [accounts-payable]
+      summary: List accounts payable
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, paid, overdue, cancelled]
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Accounts payable list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountPayable"
+    post:
+      operationId: createAccountPayable
+      tags: [accounts-payable]
+      summary: Create an account payable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountPayableBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPayable"
+
+  /accounts-payable/{id}:
+    get:
+      operationId: getAccountPayable
+      tags: [accounts-payable]
+      summary: Get an account payable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Account payable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPayable"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateAccountPayable
+      tags: [accounts-payable]
+      summary: Update an account payable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountPayableBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPayable"
+    delete:
+      operationId: deleteAccountPayable
+      tags: [accounts-payable]
+      summary: Delete an account payable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /accounts-payable/{id}/recurrence-info:
+    get:
+      operationId: getAccountPayableRecurrenceInfo
+      tags: [accounts-payable]
+      summary: Returns information about the recurrence series this payable belongs to (used to warn before deletion)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recurrence info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurrenceInfo"
+
+  /accounts-payable/{id}/pay:
+    post:
+      operationId: payAccountPayable
+      tags: [accounts-payable]
+      summary: Mark an account payable as paid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayAccountBody"
+      responses:
+        "200":
+          description: Paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPayable"
+
+  # ── Accounts Receivable ─────────────────────────────────────────────────────
+  /accounts-receivable:
+    get:
+      operationId: listAccountsReceivable
+      tags: [accounts-receivable]
+      summary: List accounts receivable
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, received, overdue, cancelled]
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Accounts receivable list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountReceivable"
+    post:
+      operationId: createAccountReceivable
+      tags: [accounts-receivable]
+      summary: Create an account receivable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountReceivableBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountReceivable"
+
+  /accounts-receivable/{id}:
+    get:
+      operationId: getAccountReceivable
+      tags: [accounts-receivable]
+      summary: Get an account receivable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Account receivable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountReceivable"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateAccountReceivable
+      tags: [accounts-receivable]
+      summary: Update an account receivable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountReceivableBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountReceivable"
+    delete:
+      operationId: deleteAccountReceivable
+      tags: [accounts-receivable]
+      summary: Delete an account receivable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /accounts-receivable/{id}/recurrence-info:
+    get:
+      operationId: getAccountReceivableRecurrenceInfo
+      tags: [accounts-receivable]
+      summary: Returns information about the recurrence series this receivable belongs to (used to warn before deletion)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recurrence info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurrenceInfo"
+
+  /accounts-receivable/{id}/receive:
+    post:
+      operationId: receiveAccountReceivable
+      tags: [accounts-receivable]
+      summary: Mark an account receivable as received
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiveAccountBody"
+      responses:
+        "200":
+          description: Received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountReceivable"
+
+  # ── Import Logs ─────────────────────────────────────────────────────────────
+  /import-logs:
+    get:
+      operationId: listImportLogs
+      tags: [import-logs]
+      summary: List import logs
+      parameters:
+        - name: cardId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Import logs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ImportLog"
+
+  # ── Category Rules ──────────────────────────────────────────────────────────
+  /category-rules:
+    get:
+      operationId: listCategoryRules
+      tags: [category-rules]
+      summary: List category rules
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category rules list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryRule"
+    post:
+      operationId: createCategoryRule
+      tags: [category-rules]
+      summary: Create a category rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryRuleBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryRule"
+
+  /category-rules/{id}:
+    get:
+      operationId: getCategoryRule
+      tags: [category-rules]
+      summary: Get a category rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryRule"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCategoryRule
+      tags: [category-rules]
+      summary: Update a category rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryRuleBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryRule"
+    delete:
+      operationId: deleteCategoryRule
+      tags: [category-rules]
+      summary: Delete a category rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Dashboard ───────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary metrics
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent-transactions:
+    get:
+      operationId: getRecentTransactions
+      tags: [dashboard]
+      summary: Get recent transactions across all sources
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Recent transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecentTransaction"
+
+  /dashboard/cash-flow:
+    get:
+      operationId: getCashFlow
+      tags: [dashboard]
+      summary: Get monthly cash flow data for last 12 months
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cash flow data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CashFlowMonth"
+
+  /dashboard/upcoming-bills:
+    get:
+      operationId: getUpcomingBills
+      tags: [dashboard]
+      summary: Get upcoming bills (payable + receivable) in next 30 days
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Upcoming bills
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UpcomingBill"
+
+  /dashboard/category-breakdown:
+    get:
+      operationId: getCategoryBreakdown
+      tags: [dashboard]
+      summary: Get spending breakdown by category for a month
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryBreakdownItem"
+
+  # ── Users ─────────────────────────────────────────────────────────────────
+  /users/me:
+    get:
+      operationId: getCurrentUser
+      tags: [users]
+      summary: Get or create the current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateCurrentUser
+      tags: [users]
+      summary: Update the current authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── Card Installments ─────────────────────────────────────────────────────
+  /card-installments:
+    get:
+      operationId: listCardInstallments
+      tags: [card-installments]
+      summary: List installment groups
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: cardId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Installments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardInstallment"
+    post:
+      operationId: createCardInstallment
+      tags: [card-installments]
+      summary: Create a new installment group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardInstallmentBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardInstallment"
+
+  /card-installments/{id}:
+    get:
+      operationId: getCardInstallment
+      tags: [card-installments]
+      summary: Get a card installment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Installment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardInstallment"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCardInstallment
+      tags: [card-installments]
+      summary: Update a card installment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCardInstallmentBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardInstallment"
+    delete:
+      operationId: deleteCardInstallment
+      tags: [card-installments]
+      summary: Delete a card installment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── AI Copilot Inspection ─────────────────────────────────────────────────
+  /ai/failed-questions:
+    get:
+      operationId: listFailedQuestions
+      tags: [ai]
+      summary: List recent failed copilot questions grouped by similarity
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: includeReviewed
+          in: query
+          required: false
+          description: When true, include groups marked as resolved or ignored.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Grouped failed questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FailedQuestionGroup"
+
+  /ai/failed-questions/review:
+    post:
+      operationId: reviewFailedQuestion
+      tags: [ai]
+      summary: Mark a failed question group as resolved, ignored, or open
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewFailedQuestionBody"
+      responses:
+        "200":
+          description: Updated review state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedQuestionReview"
+
+  /ai/suggest-intent:
+    post:
+      operationId: suggestIntent
+      tags: [ai]
+      summary: Suggest an intent name + RegExp + snippet for a failed copilot question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestIntentBody"
+      responses:
+        "200":
+          description: Suggested intent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntentSuggestion"
+
+  # ── Settings (User-level) ─────────────────────────────────────────────────
+  /settings/openrouter:
+    get:
+      operationId: getOpenrouterSettings
+      tags: [settings]
+      summary: Get OpenRouter settings (key is masked)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterSettings"
+    put:
+      operationId: updateOpenrouterSettings
+      tags: [settings]
+      summary: Set OpenRouter API key/model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOpenrouterSettingsBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterSettings"
+    delete:
+      operationId: clearOpenrouterSettings
+      tags: [settings]
+      summary: Remove OpenRouter API key
+      responses:
+        "204":
+          description: Cleared
+
+  # ── Reports ───────────────────────────────────────────────────────────────
+  /reports/installment-purchases:
+    get:
+      operationId: getInstallmentPurchasesReport
+      tags: [reports]
+      summary: Monthly stacked totals for credit-card and manual installment purchases
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: categoryId
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: commitmentTypeId
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstallmentPurchasesReport"
+
+  # ── Category Suggestions ──────────────────────────────────────────────────
+  /category-rules/suggest:
+    get:
+      operationId: suggestCategory
+      tags: [category-rules]
+      summary: Suggest a category for a description (rules + AI fallback)
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: description
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suggestion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategorySuggestion"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ── Profile ──────────────────────────────────────────────────────────────
+    Profile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkUserId:
+          type: string
+        name:
+          type: string
+        isDefault:
+          type: boolean
+        status:
+          type: string
+          enum: [active, archived]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, clerkUserId, name, isDefault, status, createdAt, updatedAt]
+
+    CreateProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        isDefault:
+          type: boolean
+      required: [name]
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        isDefault:
+          type: boolean
+        status:
+          type: string
+          enum: [active, archived]
+
+    # ── Category ─────────────────────────────────────────────────────────────
+    CategoryType:
+      type: string
+      enum: [expense, income, both]
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        icon:
+          type: ["string", "null"]
+        type:
+          $ref: "#/components/schemas/CategoryType"
+        isDefault:
+          type: boolean
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, profileId, name, color, type, isDefault, isActive, createdAt]
+
+    CreateCategoryBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        icon:
+          type: ["string", "null"]
+        type:
+          $ref: "#/components/schemas/CategoryType"
+        isActive:
+          type: boolean
+      required: [profileId, name, color]
+
+    UpdateCategoryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+        icon:
+          type: ["string", "null"]
+        type:
+          $ref: "#/components/schemas/CategoryType"
+        isActive:
+          type: boolean
+
+    # ── Commitment Type ──────────────────────────────────────────────────────
+    CommitmentType:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        name:
+          type: string
+        isDefault:
+          type: boolean
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, profileId, name, isDefault, isActive, createdAt]
+
+    CreateCommitmentTypeBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        name:
+          type: string
+        isActive:
+          type: boolean
+      required: [profileId, name]
+
+    UpdateCommitmentTypeBody:
+      type: object
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+
+    # ── Person ───────────────────────────────────────────────────────────────
+    Person:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [person, company]
+        document:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        zipCode:
+          type: ["string", "null"]
+        street:
+          type: ["string", "null"]
+        streetNumber:
+          type: ["string", "null"]
+        complement:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, name, type, createdAt, updatedAt]
+
+    CreatePersonBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [person, company]
+        document:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        zipCode:
+          type: ["string", "null"]
+        street:
+          type: ["string", "null"]
+        streetNumber:
+          type: ["string", "null"]
+        complement:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required: [profileId, name, type]
+
+    UpdatePersonBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [person, company]
+        document:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        zipCode:
+          type: ["string", "null"]
+        street:
+          type: ["string", "null"]
+        streetNumber:
+          type: ["string", "null"]
+        complement:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── Bank Account ─────────────────────────────────────────────────────────
+    BankAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        name:
+          type: string
+        bank:
+          type: string
+        accountNumber:
+          type: ["string", "null"]
+        agency:
+          type: ["string", "null"]
+        balance:
+          type: number
+          description: Saldo inicial (base)
+        currentBalance:
+          type: number
+          description: Saldo atual calculado (saldo inicial + recebimentos - pagamentos)
+        color:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, name, bank, balance, currentBalance, color, isActive, createdAt, updatedAt]
+
+    CreateBankAccountBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        name:
+          type: string
+        bank:
+          type: string
+        accountNumber:
+          type: ["string", "null"]
+        agency:
+          type: ["string", "null"]
+        balance:
+          type: number
+        color:
+          type: string
+      required: [profileId, name, bank, balance, color]
+
+    UpdateBankAccountBody:
+      type: object
+      properties:
+        name:
+          type: string
+        bank:
+          type: string
+        accountNumber:
+          type: ["string", "null"]
+        agency:
+          type: ["string", "null"]
+        balance:
+          type: number
+        color:
+          type: string
+        isActive:
+          type: boolean
+
+    # ── Credit Card ──────────────────────────────────────────────────────────
+    CreditCard:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        name:
+          type: string
+        brand:
+          type: string
+        lastFour:
+          type: ["string", "null"]
+        creditLimit:
+          type: number
+        closingDay:
+          type: integer
+        dueDay:
+          type: integer
+        color:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, name, brand, creditLimit, closingDay, dueDay, color, isActive, createdAt, updatedAt]
+
+    CreateCreditCardBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        name:
+          type: string
+        brand:
+          type: string
+        lastFour:
+          type: ["string", "null"]
+        creditLimit:
+          type: number
+        closingDay:
+          type: integer
+        dueDay:
+          type: integer
+        color:
+          type: string
+      required: [profileId, name, brand, creditLimit, closingDay, dueDay, color]
+
+    UpdateCreditCardBody:
+      type: object
+      properties:
+        name:
+          type: string
+        brand:
+          type: string
+        lastFour:
+          type: ["string", "null"]
+        creditLimit:
+          type: number
+        closingDay:
+          type: integer
+        dueDay:
+          type: integer
+        color:
+          type: string
+        isActive:
+          type: boolean
+
+    # ── Invoice ──────────────────────────────────────────────────────────────
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        cardId:
+          type: integer
+        year:
+          type: integer
+        month:
+          type: integer
+        totalAmount:
+          type: number
+        status:
+          type: string
+          enum: [open, closed, paid]
+        dueDate:
+          type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, cardId, year, month, totalAmount, status, createdAt, updatedAt]
+
+    CreateInvoiceRequest:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        cardId:
+          type: integer
+        year:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        status:
+          type: string
+          enum: [open, closed, paid]
+        dueDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+      required: [profileId, cardId, year, month]
+
+    UpdateInvoiceRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, closed, paid]
+        dueDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        paidAt:
+          type: ["string", "null"]
+        totalAmount:
+          type: number
+
+    # ── Card Transaction ─────────────────────────────────────────────────────
+    CardTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoiceId:
+          type: integer
+        cardId:
+          type: integer
+        profileId:
+          type: integer
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        installmentNumber:
+          type: ["integer", "null"]
+        totalInstallments:
+          type: ["integer", "null"]
+        isInstallment:
+          type: boolean
+        source:
+          type: string
+          enum: [manual, imported, installment_generated]
+        status:
+          type: string
+          enum: [active, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, invoiceId, cardId, profileId, date, description, amount, isInstallment, source, status, createdAt]
+
+    CreateCardTransactionBody:
+      type: object
+      properties:
+        invoiceId:
+          type: integer
+        cardId:
+          type: integer
+        profileId:
+          type: integer
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        categoryId:
+          type: ["integer", "null"]
+        installmentNumber:
+          type: ["integer", "null"]
+        totalInstallments:
+          type: ["integer", "null"]
+      required: [invoiceId, cardId, profileId, date, description, amount]
+
+    UpdateCardTransactionBody:
+      type: object
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [active, cancelled]
+
+    ImportCardTransactionsBody:
+      type: object
+      properties:
+        cardId:
+          type: integer
+        profileId:
+          type: integer
+        year:
+          type: integer
+        month:
+          type: integer
+        fileContent:
+          type: string
+        fileType:
+          type: string
+          enum: [csv, ofx]
+        fileName:
+          type: string
+      required: [cardId, profileId, year, month, fileContent, fileType, fileName]
+
+    GenerateInstallmentsBody:
+      type: object
+      properties:
+        currentInstallment:
+          type: integer
+          minimum: 1
+        totalInstallments:
+          type: integer
+          minimum: 2
+      required: [currentInstallment, totalInstallments]
+
+    GenerateInstallmentsResponse:
+      type: object
+      properties:
+        generated:
+          type: integer
+        skipped:
+          type: integer
+      required: [generated, skipped]
+
+    ImportResult:
+      type: object
+      properties:
+        importLogId:
+          type: integer
+        totalRecords:
+          type: integer
+        importedRecords:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [success, partial, error]
+      required: [importLogId, totalRecords, importedRecords, errors, status]
+
+    # ── Account Payable ──────────────────────────────────────────────────────
+    AccountPayable:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [open, paid, overdue, cancelled]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        commitmentTypeName:
+          type: ["string", "null"]
+        personId:
+          type: ["integer", "null"]
+        personName:
+          type: ["string", "null"]
+        bankAccountId:
+          type: ["integer", "null"]
+        invoiceId:
+          type: ["integer", "null"]
+        paidAt:
+          type: ["string", "null"]
+        paidAmount:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        recurrent:
+          type: boolean
+        natureza:
+          type: ["string", "null"]
+          enum: [manual, card, financing, null]
+          description: Nature of the payable - manual entry, credit card invoice, or financing
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, description, amount, dueDate, status, recurrent, createdAt, updatedAt]
+
+    CreateAccountPayableBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        categoryId:
+          type: ["integer", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        personId:
+          type: ["integer", "null"]
+        bankAccountId:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        recurrent:
+          type: boolean
+        natureza:
+          type: ["string", "null"]
+          enum: [manual, card, financing, null]
+        repeatMonths:
+          type: integer
+          minimum: 1
+          maximum: 60
+          description: Se informado e > 1, gera cópias mensais até totalizar repeatMonths registros
+      required: [profileId, description, amount, dueDate]
+
+    UpdateAccountPayableBody:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [open, paid, overdue, cancelled]
+        categoryId:
+          type: ["integer", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        personId:
+          type: ["integer", "null"]
+        bankAccountId:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        recurrent:
+          type: boolean
+        natureza:
+          type: ["string", "null"]
+          enum: [manual, card, financing, null]
+
+    RecurrenceInfo:
+      type: object
+      properties:
+        recurrenceGroupId:
+          type: ["string", "null"]
+        futureCount:
+          type: integer
+          description: Quantidade de parcelas futuras em aberto que serão removidas junto desta (não inclui a própria parcela)
+      required: [recurrenceGroupId, futureCount]
+
+    PayAccountBody:
+      type: object
+      properties:
+        paidAt:
+          type: string
+          format: date
+        paidAmount:
+          type: number
+        bankAccountId:
+          type: integer
+          description: Conta bancária da qual o pagamento será debitado (obrigatório)
+      required: [paidAt, paidAmount, bankAccountId]
+
+    # ── Account Receivable ───────────────────────────────────────────────────
+    AccountReceivable:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [open, received, overdue, cancelled]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        commitmentTypeName:
+          type: ["string", "null"]
+        personId:
+          type: ["integer", "null"]
+        personName:
+          type: ["string", "null"]
+        bankAccountId:
+          type: ["integer", "null"]
+        receivedAt:
+          type: ["string", "null"]
+        receivedAmount:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        recurrent:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, description, amount, dueDate, status, recurrent, createdAt, updatedAt]
+
+    CreateAccountReceivableBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        categoryId:
+          type: ["integer", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        personId:
+          type: ["integer", "null"]
+        bankAccountId:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        recurrent:
+          type: boolean
+        repeatMonths:
+          type: integer
+          minimum: 1
+          maximum: 60
+          description: Se informado e > 1, gera cópias mensais até totalizar repeatMonths registros
+      required: [profileId, description, amount, dueDate]
+
+    UpdateAccountReceivableBody:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [open, received, overdue, cancelled]
+        categoryId:
+          type: ["integer", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        personId:
+          type: ["integer", "null"]
+        bankAccountId:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        recurrent:
+          type: boolean
+
+    ReceiveAccountBody:
+      type: object
+      properties:
+        receivedAt:
+          type: string
+          format: date
+        receivedAmount:
+          type: number
+        bankAccountId:
+          type: integer
+          description: Conta bancária na qual o recebimento será creditado (obrigatório)
+      required: [receivedAt, receivedAmount, bankAccountId]
+
+    # ── Import Log ───────────────────────────────────────────────────────────
+    ImportLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        cardId:
+          type: integer
+        profileId:
+          type: integer
+        year:
+          type: integer
+        month:
+          type: integer
+        fileName:
+          type: string
+        totalRecords:
+          type: integer
+        importedRecords:
+          type: integer
+        status:
+          type: string
+          enum: [success, partial, error]
+        importedAt:
+          type: string
+          format: date-time
+      required: [id, cardId, profileId, year, month, fileName, totalRecords, importedRecords, status, importedAt]
+
+    # ── Category Rule ────────────────────────────────────────────────────────
+    CategoryRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        matchText:
+          type: string
+        categoryId:
+          type: integer
+        categoryName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, profileId, matchText, categoryId, createdAt]
+
+    CreateCategoryRuleBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        matchText:
+          type: string
+        categoryId:
+          type: integer
+      required: [profileId, matchText, categoryId]
+
+    UpdateCategoryRuleBody:
+      type: object
+      properties:
+        matchText:
+          type: string
+        categoryId:
+          type: integer
+
+    # ── Dashboard ────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      properties:
+        totalBalance:
+          type: number
+        monthIncome:
+          type: number
+        monthExpenses:
+          type: number
+        futureInstallments:
+          type: number
+        openPayables:
+          type: number
+        openReceivables:
+          type: number
+        overduePayables:
+          type: number
+        cardsTotalUsed:
+          type: number
+        cardsTotalLimit:
+          type: number
+      required: [totalBalance, monthIncome, monthExpenses, futureInstallments, openPayables, openReceivables, overduePayables, cardsTotalUsed, cardsTotalLimit]
+
+    RecentTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [card, payable, receivable]
+        categoryName:
+          type: ["string", "null"]
+        sourceName:
+          type: ["string", "null"]
+      required: [id, date, description, amount, type]
+
+    CashFlowMonth:
+      type: object
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+        income:
+          type: number
+        expenses:
+          type: number
+        balance:
+          type: number
+        isFuture:
+          type: boolean
+      required: [year, month, income, expenses, balance, isFuture]
+
+    UpcomingBill:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        type:
+          type: string
+          enum: [payable, receivable, invoice]
+        status:
+          type: string
+        daysUntilDue:
+          type: integer
+      required: [id, description, amount, dueDate, type, status, daysUntilDue]
+
+    CategoryBreakdownItem:
+      type: object
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: string
+        color:
+          type: string
+        total:
+          type: number
+        percentage:
+          type: number
+        count:
+          type: integer
+      required: [categoryName, color, total, percentage, count]
+
+    # ── User ─────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkUserId:
+          type: string
+        email:
+          type: ["string", "null"]
+        name:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, clerkUserId, createdAt, updatedAt]
+
+    UpdateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+
+    # ── CardInstallment ───────────────────────────────────────────────────────
+    CardInstallment:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        cardId:
+          type: integer
+        description:
+          type: string
+        merchant:
+          type: ["string", "null"]
+        totalAmount:
+          type: number
+        totalInstallments:
+          type: integer
+        currentInstallment:
+          type: integer
+        firstInstallmentDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, profileId, cardId, description, totalAmount, totalInstallments, currentInstallment, firstInstallmentDate, createdAt, updatedAt]
+
+    CreateCardInstallmentBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        cardId:
+          type: integer
+        description:
+          type: string
+        merchant:
+          type: string
+        totalAmount:
+          type: number
+        totalInstallments:
+          type: integer
+        currentInstallment:
+          type: integer
+        firstInstallmentDate:
+          type: string
+          format: date
+      required: [profileId, cardId, description, totalAmount, totalInstallments, firstInstallmentDate]
+
+    UpdateCardInstallmentBody:
+      type: object
+      properties:
+        description:
+          type: string
+        merchant:
+          type: string
+        totalAmount:
+          type: number
+        totalInstallments:
+          type: integer
+        currentInstallment:
+          type: integer
+        firstInstallmentDate:
+          type: string
+          format: date
+
+
+    FailedQuestionGroup:
+      type: object
+      properties:
+        normalized:
+          type: string
+        sampleQuestion:
+          type: string
+        occurrences:
+          type: integer
+        lastAttemptAt:
+          type: string
+          format: date-time
+        lastError:
+          type: ["string", "null"]
+        reviewStatus:
+          type: string
+          enum: [open, resolved, ignored]
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [normalized, sampleQuestion, occurrences, lastAttemptAt, lastError, reviewStatus, reviewedAt]
+
+    ReviewFailedQuestionBody:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        normalized:
+          type: string
+        status:
+          type: string
+          enum: [open, resolved, ignored]
+      required: [profileId, normalized, status]
+
+    FailedQuestionReview:
+      type: object
+      properties:
+        profileId:
+          type: integer
+        normalized:
+          type: string
+        status:
+          type: string
+          enum: [open, resolved, ignored]
+      required: [profileId, normalized, status]
+
+    SuggestIntentBody:
+      type: object
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 500
+      required: [question]
+
+    IntentSuggestion:
+      type: object
+      properties:
+        intentName:
+          type: string
+        regex:
+          type: string
+        snippet:
+          type: string
+        source:
+          type: string
+          enum: [llm, heuristic]
+        matchedSample:
+          type: boolean
+          description: True when the returned regex matched the original question server-side.
+      required: [intentName, regex, snippet, source, matchedSample]
+
+    OpenrouterSettings:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        keyMasked:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+      required: [configured, keyMasked, model]
+
+    UpdateOpenrouterSettingsBody:
+      type: object
+      properties:
+        apiKey:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+
+    InstallmentPurchasesReportRow:
+      type: object
+      properties:
+        month:
+          type: string
+        creditCard:
+          type: number
+        accountsPayable:
+          type: number
+      required: [month, creditCard, accountsPayable]
+
+    InstallmentPurchasesReportItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          type: string
+          enum: [credit_card, accounts_payable]
+        description:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+        installmentNumber:
+          type: ["integer", "null"]
+        totalInstallments:
+          type: ["integer", "null"]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        commitmentTypeId:
+          type: ["integer", "null"]
+        commitmentTypeName:
+          type: ["string", "null"]
+      required: [id, source, description, amount, date]
+
+    InstallmentPurchasesReport:
+      type: object
+      properties:
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstallmentPurchasesReportRow"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstallmentPurchasesReportItem"
+      required: [months, items]
+
+    CategorySuggestion:
+      type: object
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        source:
+          type: string
+          enum: [rule, ai, none]
+      required: [categoryId, categoryName, source]

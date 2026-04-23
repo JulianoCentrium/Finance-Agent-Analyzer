@@ -1,0 +1,132 @@
+# =============================================================================
+# Co-Finance — Docker Swarm stack
+# Deploy: docker stack deploy -c deploy/docker-compose.yml --with-registry-auth cofinance
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cofinance}
+      POSTGRES_USER: ${POSTGRES_USER:-cofinance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD obrigatória}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cofinance_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cofinance} -d ${POSTGRES_DB:-cofinance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      replicas: 1
+      placement:
+        # Postgres precisa de afinidade com o volume — fixe em um nó.
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  migrator:
+    image: ${REGISTRY}/cofinance-migrator:${IMAGE_TAG:?IMAGE_TAG obrigatória}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL obrigatória}
+    networks:
+      - cofinance_net
+    depends_on:
+      - postgres
+    deploy:
+      replicas: 1
+      restart_policy:
+        # Roda uma vez por deploy, depois fica parado. Aplique manualmente
+        # `docker service update --force cofinance_migrator` para rodar de novo.
+        condition: none
+      placement:
+        constraints: [node.role == manager]
+
+  api-server:
+    image: ${REGISTRY}/cofinance-api-server:${IMAGE_TAG:?IMAGE_TAG obrigatória}
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL obrigatória}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?CLERK_SECRET_KEY obrigatória}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    networks:
+      - cofinance_net
+    depends_on:
+      - postgres
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          memory: 192M
+
+  web:
+    image: ${REGISTRY}/cofinance-web:${IMAGE_TAG:?IMAGE_TAG obrigatória}
+    networks:
+      - cofinance_net
+    depends_on:
+      - api-server
+    ports:
+      # Em produção real, deixe Traefik/Nginx externo na frente terminando TLS.
+      # Esta porta é o "ingress" do swarm (load-balanced entre os nós).
+      - target: 8080
+        published: ${WEB_PUBLIC_PORT:-8080}
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          memory: 32M
+
+networks:
+  cofinance_net:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgres_data:
+    driver: local

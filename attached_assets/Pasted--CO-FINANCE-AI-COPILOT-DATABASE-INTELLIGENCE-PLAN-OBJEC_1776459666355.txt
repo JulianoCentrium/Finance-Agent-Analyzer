@@ -1,0 +1,410 @@
+# CO-FINANCE — AI COPILOT DATABASE INTELLIGENCE PLAN
+
+## OBJECTIVE
+
+Improve the AI Copilot so it can correctly answer financial questions using real database data.
+
+Examples of supported questions:
+
+* Qual é o saldo da conta Nubank?
+* Quanto gastei com Alimentação em Março?
+* Total gasto no cartão Visa este mês?
+* Quanto vou pagar no próximo mês?
+* Quanto ainda falta pagar das parcelas?
+
+The AI must:
+
+Understand financial structure
+Generate safe SQL queries
+Execute queries
+Return human-friendly answers
+
+---
+
+# CURRENT PROBLEM
+
+The AI is connected to OpenRouter but:
+
+* Does not understand database structure
+* Generates incorrect responses
+* Cannot query financial data reliably
+
+We must implement a structured SQL-aware AI architecture.
+
+---
+
+# TARGET ARCHITECTURE
+
+User Question
+↓
+AI interprets question
+↓
+Generate SQL query
+↓
+Execute SQL
+↓
+Format result
+↓
+Return natural language answer
+
+---
+
+# PHASE 1 — CREATE DATABASE CONTEXT FOR AI
+
+Create file:
+
+src/ai/db-context.ts
+
+Purpose:
+
+Teach the AI the database structure.
+
+---
+
+## Implementation
+
+Create structured schema description.
+
+Example:
+
+export const dbContext = `
+
+DATABASE STRUCTURE:
+
+profiles
+
+* id
+* name
+
+bank_accounts
+
+* id
+* profile_id
+* name
+* balance
+
+credit_cards
+
+* id
+* profile_id
+* name
+
+transactions
+
+* id
+* profile_id
+* description
+* amount
+* category_id
+* account_id
+* credit_card_id
+* installment_number
+* installment_total
+* due_date
+* status
+
+categories
+
+* id
+* name
+
+accounts_payable
+
+* id
+* profile_id
+* amount
+* due_date
+
+accounts_receivable
+
+* id
+* profile_id
+* amount
+* due_date
+
+`;
+
+This context must always be sent to the AI.
+
+---
+
+# PHASE 2 — CREATE SQL GENERATION SERVICE
+
+Create:
+
+src/services/ai-sql-generator.service.ts
+
+Purpose:
+
+Convert natural language into SQL queries.
+
+---
+
+## AI Prompt Template
+
+Use:
+
+You are a financial database assistant.
+
+You generate SQL queries based on the database structure.
+
+Rules:
+
+* Only generate SELECT queries
+* Never generate DELETE
+* Never generate UPDATE
+* Never generate INSERT
+
+Always include:
+
+LIMIT 100
+
+Return only SQL.
+
+Use database schema below:
+
+{dbContext}
+
+User question:
+
+{userQuestion}
+
+---
+
+# PHASE 3 — SAFE SQL EXECUTOR
+
+Create:
+
+src/services/sql-executor.service.ts
+
+Purpose:
+
+Execute generated SQL safely.
+
+---
+
+## Security Rules
+
+Allow:
+
+SELECT only
+
+Block:
+
+DELETE
+UPDATE
+INSERT
+DROP
+
+Add:
+
+LIMIT required
+Timeout protection
+
+---
+
+# PHASE 4 — RESPONSE FORMATTER
+
+Create:
+
+src/services/ai-response.service.ts
+
+Purpose:
+
+Convert SQL results into natural language answers.
+
+---
+
+## Example
+
+SQL Result:
+
+{ total: 2540.50 }
+
+Response:
+
+Você gastou R$ 2.540,50 com Alimentação em Março.
+
+Use:
+
+Portuguese (Brazil).
+
+Currency:
+
+BRL format.
+
+---
+
+# PHASE 5 — CREATE FINANCIAL VIEWS
+
+Important for performance.
+
+Create SQL views.
+
+---
+
+## View 1 — Monthly Category Summary
+
+CREATE VIEW monthly_category_summary AS
+
+SELECT
+profile_id,
+category_id,
+DATE_TRUNC('month', due_date) as month,
+SUM(amount) as total
+
+FROM transactions
+
+GROUP BY
+profile_id,
+category_id,
+month;
+
+---
+
+## View 2 — Credit Card Summary
+
+CREATE VIEW credit_card_summary AS
+
+SELECT
+credit_card_id,
+DATE_TRUNC('month', due_date) as month,
+SUM(amount) as total
+
+FROM transactions
+
+GROUP BY
+credit_card_id,
+month;
+
+---
+
+# PHASE 6 — CREATE KNOWN QUERY INTENTS
+
+Create:
+
+src/ai/known-intents.ts
+
+Purpose:
+
+Speed up common financial questions.
+
+---
+
+## Examples
+
+Saldo Conta:
+
+SELECT balance
+FROM bank_accounts
+WHERE name ILIKE '%{accountName}%'
+
+---
+
+Gasto Categoria:
+
+SELECT SUM(amount)
+FROM transactions
+JOIN categories ON categories.id = transactions.category_id
+WHERE categories.name = '{categoryName}'
+AND DATE_TRUNC('month', due_date) = '{month}'
+
+---
+
+Gasto Cartão:
+
+SELECT SUM(amount)
+FROM transactions
+WHERE credit_card_id = '{cardId}'
+
+---
+
+# PHASE 7 — CREATE AI MEMORY
+
+Create table:
+
+ai_query_logs
+
+Columns:
+
+id
+profile_id
+question
+sql_generated
+timestamp
+
+Purpose:
+
+Improve future responses.
+
+Track behavior.
+
+---
+
+# PHASE 8 — CREATE FRONTEND COPILOT UI
+
+Create:
+
+src/components/AICopilot.tsx
+
+UI elements:
+
+* Input field
+* Send button
+* Response panel
+* History list
+
+Add suggestion buttons:
+
+* Qual meu saldo?
+* Quanto gastei este mês?
+* Próximas parcelas?
+* Total por categoria?
+
+All UI text must be Portuguese (pt-BR).
+
+---
+
+# PHASE 9 — ADD SUPPORTED FINANCIAL QUESTIONS
+
+Priority supported questions:
+
+Saldo conta bancária
+Saldo total perfil
+Gasto por categoria
+Gasto por cartão
+Parcelas restantes
+Projeção próxima fatura
+Total mensal
+Maior categoria do mês
+
+---
+
+# PHASE 10 — TESTING
+
+Test queries:
+
+Saldo conta
+Gasto categoria
+Gasto cartão
+Parcelas futuras
+
+Ensure:
+
+Correct SQL
+Correct totals
+Correct currency formatting
+
+---
+
+# FINAL GOAL
+
+The AI Copilot must:
+
+Understand financial data
+Generate correct SQL
+Execute safely
+Return accurate financial answers
+Respond in Portuguese
+
+The AI must behave as a financial assistant for the Co-Finance system.

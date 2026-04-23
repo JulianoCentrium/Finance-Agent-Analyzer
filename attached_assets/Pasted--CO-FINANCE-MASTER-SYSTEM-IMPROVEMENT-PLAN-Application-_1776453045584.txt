@@ -1,0 +1,485 @@
+# CO-FINANCE — MASTER SYSTEM IMPROVEMENT PLAN
+
+## Application Name
+
+Co-Finance
+
+---
+
+# SYSTEM ARCHITECTURE OVERVIEW
+
+The system supports:
+
+User Account → Multiple Profiles
+
+Each user account can contain multiple financial profiles.
+
+Each profile contains:
+
+* Transactions
+* Accounts Payable
+* Accounts Receivable
+* Credit Cards
+* Installments
+* Financial reports
+
+Example:
+
+Conta do Usuário:
+
+* Perfil Pessoal
+* Perfil Empresa
+* Perfil Familiar
+
+All financial data belongs to a Profile.
+
+---
+
+# STACK OVERVIEW
+
+Frontend:
+
+* React
+* Vite
+* TypeScript
+* Shadcn/UI (Radix UI + Tailwind CSS)
+
+Backend:
+
+* Node.js
+* Express
+* TypeScript
+
+Database:
+
+* PostgreSQL
+* Drizzle ORM
+
+Authentication:
+
+* Clerk
+
+Charts:
+
+Use stacked bar charts.
+
+Recommended:
+
+Recharts
+
+Icons:
+
+Use Font Awesome Free only.
+
+Do not use Font Awesome Pro.
+
+---
+
+# FRONTEND LANGUAGE STANDARD (MANDATORY)
+
+All frontend UI must be:
+
+Portuguese (Brazil) — pt-BR
+
+Never mix languages.
+
+---
+
+## Formatting Rules
+
+Date format:
+
+DD/MM/YYYY
+
+Currency:
+
+R$ 1.234,56
+
+Timezone:
+
+America/Sao_Paulo
+
+Currency:
+
+BRL
+
+---
+
+# PHASE 1 — FINANCIAL CORE FIXES (CRITICAL)
+
+These fixes must be implemented first.
+
+---
+
+## FEATURE 1 — Fix Credit Card Invoice Import
+
+Problem:
+
+Import updates only current month.
+
+Required:
+
+Update:
+
+* Current month
+* All future months affected by installments
+
+Behavior:
+
+* Recalculate projections
+* Update all installment months
+* Maintain consistency
+
+Prevent:
+
+Duplicate projections.
+
+---
+
+## FEATURE 2 — Installment Detail Generation
+
+Add installment detail action.
+
+User inputs:
+
+* Current installment number
+* Remaining installments
+
+Example:
+
+Parcela atual: 3
+Parcelas restantes: 4
+
+System must create:
+
+4 new future installments:
+
+Month +1
+Month +2
+Month +3
+Month +4
+
+Each must:
+
+* Maintain sequence
+* Have correct due date
+* Link to original transaction
+* Prevent duplicates
+
+---
+
+## FEATURE 3 — Monthly Balance Fix
+
+Problem:
+
+Monthly balance missing data.
+
+Required:
+
+Monthly balance must always show:
+
+Contas a Pagar
+Contas a Receber
+Saldo Final
+
+All three lines required.
+
+---
+
+# PHASE 2 — FINANCIAL CONTROL FEATURES
+
+---
+
+## FEATURE 4 — Credit Card Transaction Cancelation
+
+Add field:
+
+status:
+
+active
+cancelled
+
+Cancelled transactions:
+
+* Must not affect balances
+* Must remain visible
+* Must be visually marked
+
+---
+
+## FEATURE 5 — Manual Installment Handling
+
+Allow user to manually define:
+
+* Installment number
+* Remaining installments
+
+System auto-generates:
+
+Future installments.
+
+---
+
+## FEATURE 6 — Smart Category Learning
+
+When user assigns category:
+
+Save mapping:
+
+transaction_description → category
+
+Future transactions:
+
+Auto-suggest category.
+
+If OpenRouter exists:
+
+Use AI classification.
+
+Credit card transactions:
+
+Field "parcelas" indicates installment purchase.
+
+---
+
+# PHASE 3 — PROFILE MANAGEMENT (ACCOUNT → PROFILES)
+
+User Account contains multiple Profiles.
+
+---
+
+## FEATURE 7 — Rename Profile
+
+Allow renaming profiles.
+
+Add button:
+
+"Renomear Perfil"
+
+Behavior:
+
+* Select profile
+* Edit name
+* Save changes
+
+Validation:
+
+* Name cannot be empty
+* Must be unique within account
+
+Database:
+
+Update:
+
+profile.name
+
+---
+
+## FEATURE 8 — Delete Profile
+
+Allow profile deletion.
+
+Only if safe.
+
+Show confirmation dialog:
+
+Título:
+
+"Confirmar exclusão"
+
+Mensagem:
+
+"Tem certeza que deseja excluir este perfil? Esta ação removerá todos os dados associados."
+
+Buttons:
+
+"Cancelar"
+"Confirmar"
+
+---
+
+## Deletion Safety Rules
+
+Do NOT allow deletion if profile contains:
+
+* Transactions
+* Installments
+* Accounts Payable
+* Accounts Receivable
+* Credit Card records
+
+If dependencies exist:
+
+Show message:
+
+"Este perfil possui dados financeiros e não pode ser excluído."
+
+---
+
+## Recommended Advanced Feature — Archive Profile
+
+Instead of delete:
+
+Allow:
+
+"Arquivar Perfil"
+
+Behavior:
+
+Profile becomes:
+
+inactive
+
+Hidden from active usage.
+
+Suggested field:
+
+profile.status:
+
+active
+archived
+
+---
+
+# PHASE 4 — AI CONFIGURATION
+
+---
+
+## FEATURE 9 — OpenRouter API Key
+
+Create:
+
+Configurações → Inteligência Artificial
+
+Allow storing:
+
+OPENROUTER_API_KEY
+
+Storage:
+
+Environment variable or secure table.
+
+Use AI to:
+
+* Classify transactions
+* Suggest categories
+
+---
+
+# PHASE 5 — REPORTING SYSTEM
+
+---
+
+## FEATURE 10 — Installment Purchases Report
+
+Create:
+
+"Relatório de Compras Parceladas"
+
+Include:
+
+Credit Card Installments
+Manual Accounts Payable Installments
+
+Exclude:
+
+Accounts payable generated from credit card invoices.
+
+---
+
+## Visualization Requirements
+
+Chart:
+
+Stacked Bar Chart
+
+Each bar:
+
+Month
+
+Stack components:
+
+Cartão de Crédito
+Contas a Pagar
+
+Click behavior:
+
+Click stack:
+
+Show detailed transactions.
+
+---
+
+# PHASE 6 — USER INTERFACE STANDARDIZATION
+
+---
+
+## FEATURE 11 — Font Awesome Free
+
+Use:
+
+Font Awesome Free only.
+
+All category icons must use:
+
+Free icons.
+
+---
+
+## FEATURE 12 — Portuguese Terminology
+
+Standard labels:
+
+Accounts Payable → Contas a Pagar
+Accounts Receivable → Contas a Receber
+Installments → Parcelas
+Credit Card → Cartão de Crédito
+
+Do not mix English text.
+
+---
+
+# PHASE 7 — DATA SAFETY RULES
+
+All database changes must:
+
+Use Drizzle migrations.
+
+Add validation:
+
+Prevent duplicate installments.
+
+Validate:
+
+Sequential dates
+Transaction states
+
+---
+
+# PHASE 8 — TESTING REQUIREMENTS
+
+Add automated tests for:
+
+Installment generation
+Invoice import propagation
+Monthly balance calculations
+Category learning
+
+---
+
+# FINAL OBJECTIVE
+
+The Co-Finance system must support:
+
+Reliable installment tracking
+Correct financial projections
+Multi-profile financial management
+AI-assisted categorization
+Portuguese localized interface
+Professional financial reporting
+
+Implement incrementally.
+
+Validate after each phase.
+
+Never break existing workflows.

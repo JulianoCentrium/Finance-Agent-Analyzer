@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cofinance}
+      POSTGRES_USER: ${POSTGRES_USER:-cofinance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cofinance_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cofinance} -d ${POSTGRES_DB:-cofinance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  migrator:
+    image: ${REGISTRY}/cofinance-migrator:${IMAGE_TAG}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - cofinance_net
+    depends_on:
+      - postgres
+
+  api-server:
+    image: ${REGISTRY}/cofinance-api-server:${IMAGE_TAG}
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      DATABASE_URL: ${DATABASE_URL}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    networks:
+      - cofinance_net
+    depends_on:
+      - postgres
+
+  web:
+    image: ${REGISTRY}/cofinance-web:${IMAGE_TAG}
+    networks:
+      - cofinance_net
+    depends_on:
+      - api-server
+    ports:
+      - "${WEB_PUBLIC_PORT:-8190}:8080"
+
+networks:
+  cofinance_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

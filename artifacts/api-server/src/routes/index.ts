@@ -1,0 +1,46 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import usersRouter from "./users";
+import profilesRouter from "./profiles";
+import categoriesRouter from "./categories";
+import commitmentTypesRouter from "./commitmentTypes";
+import personsRouter from "./persons";
+import bankAccountsRouter from "./bankAccounts";
+import creditCardsRouter from "./creditCards";
+import invoicesRouter from "./invoices";
+import cardTransactionsRouter from "./cardTransactions";
+import cardInstallmentsRouter from "./cardInstallments";
+import accountsPayableRouter from "./accountsPayable";
+import accountsReceivableRouter from "./accountsReceivable";
+import importLogsRouter from "./importLogs";
+import categoryRulesRouter from "./categoryRules";
+import dashboardRouter from "./dashboard";
+import aiChatRouter from "./aiChat";
+import aiQueryLogsRouter from "./aiQueryLogs";
+import settingsRouter from "./settings";
+import reportsRouter from "./reports";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(usersRouter);
+router.use(profilesRouter);
+router.use(categoriesRouter);
+router.use(commitmentTypesRouter);
+router.use(personsRouter);
+router.use(bankAccountsRouter);
+router.use(creditCardsRouter);
+router.use(invoicesRouter);
+router.use(cardTransactionsRouter);
+router.use(cardInstallmentsRouter);
+router.use(accountsPayableRouter);
+router.use(accountsReceivableRouter);
+router.use(importLogsRouter);
+router.use(categoryRulesRouter);
+router.use(dashboardRouter);
+router.use(aiChatRouter);
+router.use(aiQueryLogsRouter);
+router.use(settingsRouter);
+router.use(reportsRouter);
+
+export default router;
