@@ -449,14 +449,14 @@ export interface GenerateInstallmentsResponse {
   skipped: number;
 }
 
-export interface SetInstallmentBody {
+export interface SetCardTransactionInstallmentBody {
   /** @minimum 1 */
   currentInstallment: number;
   /** @minimum 2 */
   totalInstallments: number;
 }
 
-export interface SetInstallmentResponse {
+export interface SetCardTransactionInstallmentResponse {
   updated: boolean;
   generated: number;
   skipped: number;
@@ -784,12 +784,12 @@ export interface UpdateCategoryRuleBody {
 
 export interface DashboardSummary {
   totalBalance: number;
-  monthIncome: number;
   monthExpenses: number;
   futureInstallments: number;
-  openPayables: number;
-  openReceivables: number;
-  overduePayables: number;
+  monthPaidPayables: number;
+  monthTotalPayables: number;
+  monthReceivedReceivables: number;
+  monthTotalReceivables: number;
   cardsTotalUsed: number;
   cardsTotalLimit: number;
 }

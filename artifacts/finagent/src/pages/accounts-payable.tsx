@@ -262,12 +262,29 @@ export default function AccountsPayablePage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { year, month } = currentYearMonth();
-  const [filterYear, setFilterYear] = useState<number | null>(year);
-  const [filterMonth, setFilterMonth] = useState<number | null>(month);
+
+  const competencias = (() => {
+    const opts: { value: string; label: string }[] = [];
+    for (let i = -24; i <= 6; i++) {
+      const d = new Date(year, month - 1 + i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const value = `${y}-${String(m).padStart(2, "0")}`;
+      const label = `${String(m).padStart(2, "0")}/${y}`;
+      opts.push({ value, label });
+    }
+    return opts.reverse();
+  })();
+
+  const currentCompetencia = `${year}-${String(month).padStart(2, "0")}`;
+  const [filterCompetencia, setFilterCompetencia] = useState<string>(currentCompetencia);
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterSearch, setFilterSearch] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [filterCommitmentTypeId, setFilterCommitmentTypeId] = useState<string>("all");
+
+  const filterYear = filterCompetencia !== "all" ? parseInt(filterCompetencia.split("-")[0]) : null;
+  const filterMonth = filterCompetencia !== "all" ? parseInt(filterCompetencia.split("-")[1]) : null;
 
   const { data: items, isLoading } = useListAccountsPayable(
     {
@@ -366,9 +383,6 @@ export default function AccountsPayablePage() {
     };
   }, [filteredItems]);
 
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const years = [year - 1, year, year + 1];
-
   if (!activeProfileId) return <p className="text-muted-foreground">Selecione um perfil.</p>;
 
   return (
@@ -413,18 +427,11 @@ export default function AccountsPayablePage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterMonth == null ? "all" : String(filterMonth)} onValueChange={v => setFilterMonth(v === "all" ? null : Number(v))}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+        <Select value={filterCompetencia} onValueChange={setFilterCompetencia}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            {months.map(m => <SelectItem key={m} value={String(m)}>{String(m).padStart(2, "0")}/{filterYear ?? year}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterYear == null ? "all" : String(filterYear)} onValueChange={v => setFilterYear(v === "all" ? null : Number(v))}>
-          <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            {competencias.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterStatus || "all"} onValueChange={v => setFilterStatus(v === "all" ? "" : v)}>

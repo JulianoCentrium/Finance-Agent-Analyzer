@@ -46,8 +46,6 @@ import type {
   FailedQuestionReview,
   GenerateInstallmentsBody,
   GenerateInstallmentsResponse,
-  SetInstallmentBody,
-  SetInstallmentResponse,
   GetCashFlowParams,
   GetCategoryBreakdownParams,
   GetDashboardSummaryParams,
@@ -82,6 +80,8 @@ import type {
   RecentTransaction,
   RecurrenceInfo,
   ReviewFailedQuestionBody,
+  SetCardTransactionInstallmentBody,
+  SetCardTransactionInstallmentResponse,
   SuggestCategoryParams,
   SuggestIntentBody,
   UpcomingBill,
@@ -3869,21 +3869,25 @@ export const useGenerateCardTransactionInstallments = <
   );
 };
 
-export const getSetCardTransactionInstallmentUrl = (id: number) =>
-  `/card-transactions/${id}/set-installment`;
+/**
+ * @summary Redefine installment metadata for a card transaction
+ */
+export const getSetCardTransactionInstallmentUrl = (id: number) => {
+  return `/api/card-transactions/${id}/set-installment`;
+};
 
 export const setCardTransactionInstallment = async (
   id: number,
-  setInstallmentBody: SetInstallmentBody,
+  setCardTransactionInstallmentBody: SetCardTransactionInstallmentBody,
   options?: RequestInit,
-): Promise<SetInstallmentResponse> => {
-  return customFetch<SetInstallmentResponse>(
+): Promise<SetCardTransactionInstallmentResponse> => {
+  return customFetch<SetCardTransactionInstallmentResponse>(
     getSetCardTransactionInstallmentUrl(id),
     {
       ...options,
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(setInstallmentBody),
+      body: JSON.stringify(setCardTransactionInstallmentBody),
     },
   );
 };
@@ -3895,14 +3899,14 @@ export const getSetCardTransactionInstallmentMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof setCardTransactionInstallment>>,
     TError,
-    { id: number; data: BodyType<SetInstallmentBody> },
+    { id: number; data: BodyType<SetCardTransactionInstallmentBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof setCardTransactionInstallment>>,
   TError,
-  { id: number; data: BodyType<SetInstallmentBody> },
+  { id: number; data: BodyType<SetCardTransactionInstallmentBody> },
   TContext
 > => {
   const mutationKey = ["setCardTransactionInstallment"];
@@ -3916,9 +3920,10 @@ export const getSetCardTransactionInstallmentMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof setCardTransactionInstallment>>,
-    { id: number; data: BodyType<SetInstallmentBody> }
+    { id: number; data: BodyType<SetCardTransactionInstallmentBody> }
   > = (props) => {
     const { id, data } = props ?? {};
+
     return setCardTransactionInstallment(id, data, requestOptions);
   };
 
@@ -3929,11 +3934,11 @@ export type SetCardTransactionInstallmentMutationResult = NonNullable<
   Awaited<ReturnType<typeof setCardTransactionInstallment>>
 >;
 export type SetCardTransactionInstallmentMutationBody =
-  BodyType<SetInstallmentBody>;
+  BodyType<SetCardTransactionInstallmentBody>;
 export type SetCardTransactionInstallmentMutationError = ErrorType<unknown>;
 
 /**
- * @summary Redefine installment number and regenerate future installments
+ * @summary Redefine installment metadata for a card transaction
  */
 export const useSetCardTransactionInstallment = <
   TError = ErrorType<unknown>,
@@ -3942,14 +3947,14 @@ export const useSetCardTransactionInstallment = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof setCardTransactionInstallment>>,
     TError,
-    { id: number; data: BodyType<SetInstallmentBody> },
+    { id: number; data: BodyType<SetCardTransactionInstallmentBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof setCardTransactionInstallment>>,
   TError,
-  { id: number; data: BodyType<SetInstallmentBody> },
+  { id: number; data: BodyType<SetCardTransactionInstallmentBody> },
   TContext
 > => {
   return useMutation(getSetCardTransactionInstallmentMutationOptions(options));

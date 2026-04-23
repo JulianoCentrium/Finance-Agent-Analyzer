@@ -822,6 +822,28 @@ export const GenerateCardTransactionInstallmentsResponse = zod.object({
 });
 
 /**
+ * @summary Redefine installment metadata for a card transaction
+ */
+export const SetCardTransactionInstallmentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const setCardTransactionInstallmentBodyTotalInstallmentsMin = 2;
+
+export const SetCardTransactionInstallmentBody = zod.object({
+  currentInstallment: zod.number().min(1),
+  totalInstallments: zod
+    .number()
+    .min(setCardTransactionInstallmentBodyTotalInstallmentsMin),
+});
+
+export const SetCardTransactionInstallmentResponse = zod.object({
+  updated: zod.boolean(),
+  generated: zod.number(),
+  skipped: zod.number(),
+});
+
+/**
  * @summary List accounts payable
  */
 export const ListAccountsPayableQueryParams = zod.object({
@@ -1375,12 +1397,12 @@ export const GetDashboardSummaryQueryParams = zod.object({
 
 export const GetDashboardSummaryResponse = zod.object({
   totalBalance: zod.number(),
-  monthIncome: zod.number(),
   monthExpenses: zod.number(),
   futureInstallments: zod.number(),
-  openPayables: zod.number(),
-  openReceivables: zod.number(),
-  overduePayables: zod.number(),
+  monthPaidPayables: zod.number(),
+  monthTotalPayables: zod.number(),
+  monthReceivedReceivables: zod.number(),
+  monthTotalReceivables: zod.number(),
   cardsTotalUsed: zod.number(),
   cardsTotalLimit: zod.number(),
 });
@@ -1681,21 +1703,6 @@ export const UpdateOpenrouterSettingsResponse = zod.object({
   configured: zod.boolean(),
   keyMasked: zod.string().nullable(),
   model: zod.string().nullable(),
-});
-
-export const SetCardTransactionInstallmentParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const SetCardTransactionInstallmentBody = zod.object({
-  currentInstallment: zod.coerce.number().int().min(1),
-  totalInstallments: zod.coerce.number().int().min(2),
-});
-
-export const SetCardTransactionInstallmentResponse = zod.object({
-  updated: zod.boolean(),
-  generated: zod.number(),
-  skipped: zod.number(),
 });
 
 /**

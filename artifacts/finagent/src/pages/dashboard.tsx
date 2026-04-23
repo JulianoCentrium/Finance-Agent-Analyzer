@@ -5,19 +5,19 @@ import {
   useGetRecentTransactions,
   useGetCategoryBreakdown,
 } from "@workspace/api-client-react";
-import { formatCurrency, formatDate, statusLabel, currentYearMonth, monthName } from "@/lib/utils";
+import { formatCurrency, formatCompact, formatDate, statusLabel, currentYearMonth, monthName } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  TrendingUp,
   TrendingDown,
   Wallet,
   CreditCard,
-  AlertTriangle,
   Clock,
+  TrendingUp,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useLocation } from "wouter";
 
 const CHART_COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#84cc16","#f97316"];
 
@@ -28,6 +28,7 @@ function SummaryCard({
   loading,
   color = "text-foreground",
   sub,
+  href,
 }: {
   title: string;
   value: string;
@@ -35,9 +36,14 @@ function SummaryCard({
   loading: boolean;
   color?: string;
   sub?: string;
+  href?: string;
 }) {
+  const [, navigate] = useLocation();
   return (
-    <Card>
+    <Card
+      className={href ? "cursor-pointer hover:shadow-md transition-shadow select-none" : ""}
+      onClick={href ? () => navigate(href) : undefined}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -100,65 +106,60 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — linha 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
           title="Saldo Total"
-          value={formatCurrency(summary?.totalBalance ?? 0)}
+          value={formatCompact(summary?.totalBalance ?? 0)}
           icon={Wallet}
           loading={loadingSummary}
           color={summary && summary.totalBalance >= 0 ? "text-green-500" : "text-red-500"}
-        />
-        <SummaryCard
-          title="Receitas do Mês"
-          value={formatCurrency(summary?.monthIncome ?? 0)}
-          icon={TrendingUp}
-          loading={loadingSummary}
-          color="text-green-500"
+          href="/bank-accounts"
         />
         <SummaryCard
           title="Despesas do Mês"
-          value={formatCurrency(summary?.monthExpenses ?? 0)}
+          value={formatCompact(summary?.monthExpenses ?? 0)}
           icon={TrendingDown}
           loading={loadingSummary}
           color="text-red-500"
+          href="/credit-cards"
         />
         <SummaryCard
           title="Cartões (Uso/Limite)"
-          value={`${formatCurrency(summary?.cardsTotalUsed ?? 0)}`}
+          value={formatCompact(summary?.cardsTotalUsed ?? 0)}
           icon={CreditCard}
           loading={loadingSummary}
-          sub={summary ? `de ${formatCurrency(summary.cardsTotalLimit)}` : undefined}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard
-          title="A Pagar"
-          value={formatCurrency(summary?.openPayables ?? 0)}
-          icon={TrendingDown}
-          loading={loadingSummary}
-          color="text-yellow-500"
-        />
-        <SummaryCard
-          title="A Receber"
-          value={formatCurrency(summary?.openReceivables ?? 0)}
-          icon={TrendingUp}
-          loading={loadingSummary}
-          color="text-blue-500"
-        />
-        <SummaryCard
-          title="Vencidas"
-          value={formatCurrency(summary?.overduePayables ?? 0)}
-          icon={AlertTriangle}
-          loading={loadingSummary}
-          color={summary && summary.overduePayables > 0 ? "text-red-500" : "text-muted-foreground"}
+          sub={summary ? `de ${formatCompact(summary.cardsTotalLimit)}` : undefined}
+          href="/credit-cards"
         />
         <SummaryCard
           title="Parcelas (3 meses)"
-          value={formatCurrency(summary?.futureInstallments ?? 0)}
+          value={formatCompact(summary?.futureInstallments ?? 0)}
           icon={Clock}
           loading={loadingSummary}
+          href="/reports"
+        />
+      </div>
+
+      {/* KPI Cards — linha 2 */}
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
+        <SummaryCard
+          title="A Pagar"
+          value={formatCompact(summary?.monthPaidPayables ?? 0)}
+          icon={TrendingDown}
+          loading={loadingSummary}
+          color="text-yellow-500"
+          sub={summary ? `de ${formatCurrency(summary.monthTotalPayables)}` : undefined}
+          href="/accounts-payable"
+        />
+        <SummaryCard
+          title="A Receber"
+          value={formatCompact(summary?.monthReceivedReceivables ?? 0)}
+          icon={TrendingUp}
+          loading={loadingSummary}
+          color="text-blue-500"
+          sub={summary ? `de ${formatCurrency(summary.monthTotalReceivables)}` : undefined}
+          href="/accounts-receivable"
         />
       </div>
 

@@ -53,3 +53,13 @@ export function statusVariant(status: string): "default" | "secondary" | "destru
   return map[status] ?? "outline";
 }
 
+export function formatCompact(value: number): string {
+  if (Math.abs(value) < 1000) {
+    return new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+  return `${(value / 1000).toFixed(2)}k`;
+}
+

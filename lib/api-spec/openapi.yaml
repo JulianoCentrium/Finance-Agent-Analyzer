@@ -906,6 +906,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenerateInstallmentsResponse"
 
+  /card-transactions/{id}/set-installment:
+    patch:
+      operationId: setCardTransactionInstallment
+      tags: [card-transactions]
+      summary: Redefine installment metadata for a card transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetCardTransactionInstallmentBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetCardTransactionInstallmentResponse"
+
   # ── Accounts Payable ────────────────────────────────────────────────────────
   /accounts-payable:
     get:
@@ -2352,6 +2377,28 @@ components:
           type: integer
       required: [generated, skipped]
 
+    SetCardTransactionInstallmentBody:
+      type: object
+      properties:
+        currentInstallment:
+          type: integer
+          minimum: 1
+        totalInstallments:
+          type: integer
+          minimum: 2
+      required: [currentInstallment, totalInstallments]
+
+    SetCardTransactionInstallmentResponse:
+      type: object
+      properties:
+        updated:
+          type: boolean
+        generated:
+          type: integer
+        skipped:
+          type: integer
+      required: [updated, generated, skipped]
+
     ImportResult:
       type: object
       properties:
@@ -2700,23 +2747,23 @@ components:
       properties:
         totalBalance:
           type: number
-        monthIncome:
-          type: number
         monthExpenses:
           type: number
         futureInstallments:
           type: number
-        openPayables:
+        monthPaidPayables:
           type: number
-        openReceivables:
+        monthTotalPayables:
           type: number
-        overduePayables:
+        monthReceivedReceivables:
+          type: number
+        monthTotalReceivables:
           type: number
         cardsTotalUsed:
           type: number
         cardsTotalLimit:
           type: number
-      required: [totalBalance, monthIncome, monthExpenses, futureInstallments, openPayables, openReceivables, overduePayables, cardsTotalUsed, cardsTotalLimit]
+      required: [totalBalance, monthExpenses, futureInstallments, monthPaidPayables, monthTotalPayables, monthReceivedReceivables, monthTotalReceivables, cardsTotalUsed, cardsTotalLimit]
 
     RecentTransaction:
       type: object

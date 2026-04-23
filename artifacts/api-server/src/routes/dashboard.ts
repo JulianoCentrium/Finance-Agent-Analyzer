@@ -33,18 +33,6 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     .from(bankAccountsTable)
     .where(and(eq(bankAccountsTable.profileId, profileId), eq(bankAccountsTable.isActive, true)));
 
-  const [incomeRow] = await db
-    .select({ total: sql<string>`COALESCE(SUM(${accountsReceivableTable.amount}), 0)` })
-    .from(accountsReceivableTable)
-    .where(
-      and(
-        eq(accountsReceivableTable.profileId, profileId),
-        eq(accountsReceivableTable.status, "received"),
-        sql`EXTRACT(YEAR FROM ${accountsReceivableTable.receivedAt}::date) = ${year}`,
-        sql`EXTRACT(MONTH FROM ${accountsReceivableTable.receivedAt}::date) = ${month}`,
-      )
-    );
-
   const [cardExpRow] = await db
     .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
     .from(cardTransactionsTable)
@@ -54,6 +42,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
         sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
         sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
         sql`${cardTransactionsTable.amount} < 0`,
+        sql`${cardTransactionsTable.status} != 'cancelled'`,
       )
     );
 
@@ -93,25 +82,53 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
       )
     );
 
-  const [openPayRow] = await db
-    .select({ total: sql<string>`COALESCE(SUM(${accountsPayableTable.amount}), 0)`, count: sql<number>`COUNT(*)` })
-    .from(accountsPayableTable)
-    .where(and(eq(accountsPayableTable.profileId, profileId), eq(accountsPayableTable.status, "open")));
-
-  const [openRecRow] = await db
-    .select({ total: sql<string>`COALESCE(SUM(${accountsReceivableTable.amount}), 0)`, count: sql<number>`COUNT(*)` })
-    .from(accountsReceivableTable)
-    .where(and(eq(accountsReceivableTable.profileId, profileId), eq(accountsReceivableTable.status, "open")));
-
-  const today = new Date().toISOString().split("T")[0];
-  const [overdueRow] = await db
+  // A Pagar — por competência (dueDate) filtrado pelo mês/ano
+  const [monthPaidPayRow] = await db
     .select({ total: sql<string>`COALESCE(SUM(${accountsPayableTable.amount}), 0)` })
     .from(accountsPayableTable)
-    .where(and(
-      eq(accountsPayableTable.profileId, profileId),
-      eq(accountsPayableTable.status, "open"),
-      sql`${accountsPayableTable.dueDate}::date < ${today}::date`,
-    ));
+    .where(
+      and(
+        eq(accountsPayableTable.profileId, profileId),
+        eq(accountsPayableTable.status, "paid"),
+        sql`EXTRACT(YEAR FROM ${accountsPayableTable.dueDate}::date) = ${year}`,
+        sql`EXTRACT(MONTH FROM ${accountsPayableTable.dueDate}::date) = ${month}`,
+      )
+    );
+
+  const [monthTotalPayRow] = await db
+    .select({ total: sql<string>`COALESCE(SUM(${accountsPayableTable.amount}), 0)` })
+    .from(accountsPayableTable)
+    .where(
+      and(
+        eq(accountsPayableTable.profileId, profileId),
+        sql`EXTRACT(YEAR FROM ${accountsPayableTable.dueDate}::date) = ${year}`,
+        sql`EXTRACT(MONTH FROM ${accountsPayableTable.dueDate}::date) = ${month}`,
+      )
+    );
+
+  // A Receber — por competência (dueDate) filtrado pelo mês/ano
+  const [monthReceivedRecRow] = await db
+    .select({ total: sql<string>`COALESCE(SUM(${accountsReceivableTable.amount}), 0)` })
+    .from(accountsReceivableTable)
+    .where(
+      and(
+        eq(accountsReceivableTable.profileId, profileId),
+        eq(accountsReceivableTable.status, "received"),
+        sql`EXTRACT(YEAR FROM ${accountsReceivableTable.dueDate}::date) = ${year}`,
+        sql`EXTRACT(MONTH FROM ${accountsReceivableTable.dueDate}::date) = ${month}`,
+      )
+    );
+
+  const [monthTotalRecRow] = await db
+    .select({ total: sql<string>`COALESCE(SUM(${accountsReceivableTable.amount}), 0)` })
+    .from(accountsReceivableTable)
+    .where(
+      and(
+        eq(accountsReceivableTable.profileId, profileId),
+        sql`EXTRACT(YEAR FROM ${accountsReceivableTable.dueDate}::date) = ${year}`,
+        sql`EXTRACT(MONTH FROM ${accountsReceivableTable.dueDate}::date) = ${month}`,
+      )
+    );
 
   const cards = await db
     .select({ id: creditCardsTable.id, creditLimit: creditCardsTable.creditLimit })
@@ -139,12 +156,12 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
 
   const summary = {
     totalBalance: Number(balanceRow?.total ?? 0),
-    monthIncome: Number(incomeRow?.total ?? 0),
     monthExpenses: Number(cardExpRow?.total ?? 0) + Number(payExpRow?.total ?? 0),
     futureInstallments: Number(futureRow?.total ?? 0),
-    openPayables: Number(openPayRow?.total ?? 0),
-    openReceivables: Number(openRecRow?.total ?? 0),
-    overduePayables: Number(overdueRow?.total ?? 0),
+    monthPaidPayables: Number(monthPaidPayRow?.total ?? 0),
+    monthTotalPayables: Number(monthTotalPayRow?.total ?? 0),
+    monthReceivedReceivables: Number(monthReceivedRecRow?.total ?? 0),
+    monthTotalReceivables: Number(monthTotalRecRow?.total ?? 0),
     cardsTotalUsed,
     cardsTotalLimit,
   };
@@ -242,6 +259,7 @@ router.get("/dashboard/cash-flow", requireAuth, async (req, res): Promise<void> 
               sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
               sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
               sql`${cardTransactionsTable.amount} < 0`,
+              sql`${cardTransactionsTable.status} != 'cancelled'`,
             )
           );
 
@@ -296,6 +314,7 @@ router.get("/dashboard/cash-flow", requireAuth, async (req, res): Promise<void> 
               sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
               sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
               sql`${cardTransactionsTable.amount} < 0`,
+              sql`${cardTransactionsTable.status} != 'cancelled'`,
             )
           );
 
@@ -412,6 +431,7 @@ router.get("/dashboard/category-breakdown", requireAuth, async (req, res): Promi
         sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
         sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
         sql`${cardTransactionsTable.amount} < 0`,
+        sql`${cardTransactionsTable.status} != 'cancelled'`,
       )
     )
     .groupBy(cardTransactionsTable.categoryId, categoriesTable.name, categoriesTable.color)
