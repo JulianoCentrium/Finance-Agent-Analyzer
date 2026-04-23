@@ -1,0 +1,210 @@
+Segue o texto pronto para você colar no agente:
+
+---
+
+# Ajustes na Dashboard e Filtros de Competência
+
+## 1. Remoção de KPIs desnecessários
+
+**Página afetada:**
+`/dashboard`
+
+**Remover os seguintes cards:**
+
+* Card **"Receitas do Mês"**
+* Card **"Vencidas"**
+
+Esses cards não devem mais ser exibidos nem carregados.
+
+---
+
+## 2. Navegação ao clicar nos KPIs
+
+**Página afetada:**
+`/dashboard`
+
+Adicionar ação de clique nos seguintes cards:
+
+* **Saldo Total**
+  → Redirecionar para: `/bank-accounts`
+
+* **Despesas do Mês**
+  → Redirecionar para: `/credit-cards`
+  → Abrir com a aba **"Análise Geral"** já selecionada
+
+* **A Pagar**
+  → Redirecionar para: `/accounts-payable`
+
+* **A Receber**
+  → Redirecionar para: `/accounts-receivable`
+
+* **Parcelas (3 meses)**
+  → Redirecionar para: `/reports`
+
+**Comportamento esperado:**
+
+* O card inteiro deve ser clicável
+* Cursor deve mudar para `pointer`
+* Não deve haver reload completo da página (usar navegação padrão do router)
+
+---
+
+## 3. Ajuste nos KPIs "A Pagar" e "A Receber"
+
+**Página afetada:**
+`/dashboard`
+**Envolve:** Backend + Frontend
+
+### Novo formato de exibição:
+
+Os KPIs devem exibir dois valores:
+
+#### Para "A Pagar"
+
+Formato:
+
+`Pago / A Pagar`
+
+Exemplo:
+
+`2.350,00 / 5.800,00`
+
+Onde:
+
+* **Pago** → soma dos registros com status pago na competência atual
+* **A Pagar** → soma total das contas da competência atual
+
+#### Para "A Receber"
+
+Formato:
+
+`Recebido / A Receber`
+
+Exemplo:
+
+`1.200,00 / 4.500,00`
+
+Onde:
+
+* **Recebido** → soma dos registros recebidos na competência atual
+* **A Receber** → soma total da competência atual
+
+**Observação importante:**
+
+O valor Pago/Recebido normalmente será menor que o total.
+
+---
+
+## 4. Formatação abreviada de valores na Dashboard
+
+**Página afetada:**
+`/dashboard`
+**Somente frontend**
+
+### Regra:
+
+* Valores **abaixo de 1.000**
+  → Exibir normal
+  Exemplo:
+  `523,21`
+
+* Valores **a partir de 1.000**
+  → Exibir abreviado com `k`
+
+### Exemplos esperados:
+
+* `523,21` → `523,21`
+* `1.854,25` → `1.85k`
+* `1.864,25` → `1.86k`
+* `15.420,90` → `15.42k`
+
+**Regras adicionais:**
+
+* Sempre usar **2 casas decimais**
+* Usar **ponto como separador decimal** no formato abreviado (`1.85k`)
+* Não aplicar abreviação fora da dashboard
+
+---
+
+## 5. Correção do gráfico "Gastos por Categoria"
+
+**Página afetada:**
+`/dashboard`
+**Envolve:** Backend + Frontend
+
+### Problema atual:
+
+O gráfico **"Gastos por Categoria"** está vazio.
+
+### Comportamento esperado:
+
+O gráfico deve exibir:
+
+* Somente **transações de cartão** (`credit-cards`)
+* Apenas da **competência atual**
+* Agrupadas por **categoria**
+* Somar o valor total por categoria
+
+### Fonte dos dados:
+
+Tabela:
+
+`card_transactions`
+
+Campo:
+
+`category_id`
+
+### Regras:
+
+* Ignorar transações canceladas
+* Considerar apenas transações válidas
+* Ordenar categorias por valor (maior → menor)
+
+---
+
+## 6. Remoção do filtro por Ano
+
+**Páginas afetadas:**
+
+* `/accounts-payable`
+* `/accounts-receivable`
+
+### Ajuste necessário:
+
+Remover completamente:
+
+* Filtro por **Ano**
+
+Manter somente:
+
+* Filtro por **Competência (Mês/Ano)**
+
+### Comportamento esperado:
+
+* A competência continua sendo o principal filtro
+* A seleção deve permitir escolher **mês e ano juntos**
+* Não deve haver redundância de filtros
+
+---
+
+## Casos de borda importantes
+
+1. Se não houver dados na competência:
+
+* KPIs devem mostrar `0,00`
+* Gráficos devem aparecer vazios, sem erro
+
+2. Se existir valor zero:
+
+* Mostrar normalmente (`0,00`)
+* Não ocultar o card
+
+3. Se alguma categoria não tiver valor:
+
+* Não incluir no gráfico
+
+4. Se o usuário clicar rapidamente em vários cards:
+
+* A navegação deve continuar funcionando normalmente
+* Sem duplicação de rotas ou erros de estado
