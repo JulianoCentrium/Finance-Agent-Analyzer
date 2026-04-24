@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useProfile } from "../contexts/ProfileContext";
-import { UserButton } from "@clerk/react";
+import { useAuth } from "../contexts/AuthContext";
+
 import {
   useUpdateProfile,
   useDeleteProfile,
@@ -30,6 +31,7 @@ interface ProfileLite {
 
 export default function ProfileSelectPage() {
   const { profiles, setActiveProfileId } = useProfile();
+  const { logout } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -130,7 +132,12 @@ export default function ProfileSelectPage() {
             <h1 className="text-2xl font-bold text-foreground">Selecionar Perfil</h1>
             <p className="text-muted-foreground mt-1 text-sm">Escolha um perfil ou gerencie seus perfis</p>
           </div>
-          <UserButton />
+          <button
+            onClick={logout}
+            className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-accent transition-colors"
+          >
+            Sair
+          </button>
         </div>
 
         <div className="flex justify-between items-center mb-3">

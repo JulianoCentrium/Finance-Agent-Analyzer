@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import { db, aiQueryLogsTable } from "@workspace/db";
 import { assertProfileOwnership, type AuthRequest } from "../lib/auth";
 import { getOpenrouterKey } from "../lib/openrouter";

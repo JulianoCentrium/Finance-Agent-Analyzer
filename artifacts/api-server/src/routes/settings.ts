@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userSettingsTable } from "@workspace/db";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import type { AuthRequest } from "../lib/auth";
 import { maskKey } from "../lib/openrouter";
 

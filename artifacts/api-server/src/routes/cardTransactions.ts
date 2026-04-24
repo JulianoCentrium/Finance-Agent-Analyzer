@@ -17,7 +17,7 @@ import {
   SetCardTransactionInstallmentBody,
   SetCardTransactionInstallmentResponse,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import { assertProfileOwnership, assertCardOwnership, assertInvoiceOwnership, assertCategoryOwnership, type AuthRequest } from "../lib/auth";
 import { parseCSV, parseOFX } from "../lib/importParser";
 import { learnCategoryRule } from "../lib/categoryLearning";

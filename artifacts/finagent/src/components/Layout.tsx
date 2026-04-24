@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useUser, UserButton } from "@clerk/react";
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useProfile } from "../contexts/ProfileContext";
 import {
@@ -52,7 +52,7 @@ function formatCurrency(value: number) {
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useUser();
+  const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const { activeProfileId, setActiveProfileId } = useProfile();
 
@@ -168,9 +168,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="px-4 py-4 border-t border-sidebar-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <UserButton />
+              <button
+                onClick={logout}
+                className="px-2 py-1 text-xs rounded hover:bg-sidebar-accent transition-colors"
+                title="Logout"
+              >
+                Sair
+              </button>
               <span className="text-sm text-sidebar-foreground truncate max-w-28">
-                {user?.firstName ?? user?.emailAddresses?.[0]?.emailAddress ?? ""}
+                {user?.email ?? ""}
               </span>
             </div>
             <button

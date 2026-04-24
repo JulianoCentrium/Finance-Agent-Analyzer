@@ -5,13 +5,19 @@ import {
   GetCurrentUserResponse,
   UpdateCurrentUserBody,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
-import { type AuthRequest } from "../lib/auth";
+import { requireAuth } from "../middlewares/authMiddleware";
+import { type AuthRequest } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
 router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
-  const { clerkUserId } = req as AuthRequest;
+  const authReq = req as AuthRequest;
+  const clerkUserId = authReq.clerkUserId ?? (authReq.auth ? String(authReq.auth.authId) : undefined);
+
+  if (!clerkUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
   const [existing] = await db
     .select()
@@ -19,20 +25,38 @@ router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
     .where(eq(usersTable.clerkUserId, clerkUserId));
 
   if (existing) {
-    res.json(GetCurrentUserResponse.parse({ ...existing, createdAt: existing.createdAt.toISOString(), updatedAt: existing.updatedAt.toISOString() }));
+    res.json(GetCurrentUserResponse.parse({ 
+      ...existing, 
+      createdAt: existing.createdAt.toISOString(), 
+      updatedAt: existing.updatedAt.toISOString() 
+    }));
     return;
   }
 
   const [created] = await db
     .insert(usersTable)
-    .values({ clerkUserId })
+    .values({ 
+      clerkUserId,
+      email: authReq.auth.email,
+      name: authReq.auth.email.split("@")[0],
+    })
     .returning();
 
-  res.json(GetCurrentUserResponse.parse({ ...created, createdAt: created.createdAt.toISOString(), updatedAt: created.updatedAt.toISOString() }));
+  res.json(GetCurrentUserResponse.parse({ 
+    ...created, 
+    createdAt: created.createdAt.toISOString(), 
+    updatedAt: created.updatedAt.toISOString() 
+  }));
 });
 
 router.patch("/users/me", requireAuth, async (req, res): Promise<void> => {
-  const { clerkUserId } = req as AuthRequest;
+  const authReq = req as AuthRequest;
+  const clerkUserId = authReq.clerkUserId ?? (authReq.auth ? String(authReq.auth.authId) : undefined);
+
+  if (!clerkUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
   const parsed = UpdateCurrentUserBody.safeParse(req.body);
   if (!parsed.success) {
@@ -62,7 +86,12 @@ router.patch("/users/me", requireAuth, async (req, res): Promise<void> => {
     user = created;
   }
 
-  res.json(GetCurrentUserResponse.parse({ ...user, createdAt: user.createdAt.toISOString(), updatedAt: user.updatedAt.toISOString() }));
+  res.json(GetCurrentUserResponse.parse({ 
+    ...user, 
+    createdAt: user.createdAt.toISOString(), 
+    updatedAt: user.updatedAt.toISOString() 
+  }));
 });
 
 export default router;
+

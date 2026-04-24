@@ -1,0 +1,77 @@
+
+services:
+  migrator:
+    image: ${DOCKERHUB_REPO:-justbrunasso/cofinance}:${MIGRATOR_TAG:-migrator-local}
+    environment:
+      DATABASE_URL: postgres://postgres:senha123##@postgres:5432/cofinance
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.role == manager
+
+  api-server:
+    image: ${DOCKERHUB_REPO:-justbrunasso/cofinance}:${API_TAG:-api-local}
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://postgres:senha123##@postgres:5432/cofinance
+      JWT_SECRET: "f7k2Xq9mRnP4wL8vTzA1cY6sBdJ0eNhU3oGiWuE5"
+      ALLOWED_ORIGINS: "https://XXXX.XXX.XX.XX"
+    networks:
+      - network_public
+    deploy:
+      replicas: ${API_REPLICAS:-1}
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+
+  web:
+    image: ${DOCKERHUB_REPO:-justbrunasso/cofinance}:${WEB_TAG:-web-local}
+    networks:
+      - network_public
+    deploy:
+      replicas: ${WEB_REPLICAS:-1}
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=network_public
+        - traefik.http.services.cofinance.loadbalancer.server.port=8080
+        - traefik.http.routers.cofinance-http.rule=Host(`XXXX.XXX.XX.XX`)
+        - traefik.http.routers.cofinance-http.entrypoints=web
+        - traefik.http.routers.cofinance-http.middlewares=cofinance-https-redirect
+        - traefik.http.middlewares.cofinance-https-redirect.redirectscheme.scheme=https
+        - traefik.http.routers.cofinance.rule=Host(`XXXX.XXX.XX.XX`)
+        - traefik.http.routers.cofinance.entrypoints=websecure
+        - traefik.http.routers.cofinance.tls=true
+        - traefik.http.routers.cofinance.tls.certresolver=letsencryptresolver
+
+networks:
+  network_public:
+    external: true
+    name: network_public

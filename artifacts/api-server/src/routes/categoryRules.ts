@@ -10,7 +10,7 @@ import {
   UpdateCategoryRuleResponse,
   DeleteCategoryRuleParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import { assertProfileOwnership, assertCategoryOwnership, type AuthRequest } from "../lib/auth";
 import { openrouterChat } from "../lib/openrouter";
 

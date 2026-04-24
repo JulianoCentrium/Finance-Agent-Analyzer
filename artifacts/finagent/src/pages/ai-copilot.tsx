@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "@clerk/react";
+// Auth token is stored in localStorage
 import { useProfile } from "../contexts/ProfileContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export default function AiCopilotPage() {
     });
   };
 
-  const { getToken } = useAuth();
+  // Token is stored in localStorage during login
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || !activeProfileId) return;
@@ -152,7 +152,7 @@ export default function AiCopilotPage() {
     setLoading(true);
 
     try {
-      const token = await getToken();
+      const token = localStorage.getItem('auth_token');
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${import.meta.env.BASE_URL}api/ai/chat`, {

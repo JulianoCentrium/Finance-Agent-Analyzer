@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useListProfiles, useCreateProfile } from "@workspace/api-client-react";
-import { useUser } from "@clerk/react";
+import { useAuth } from "./AuthContext";
 
 interface Profile {
   id: number;
@@ -23,14 +23,18 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { user, isLoaded: isUserLoaded } = useUser();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [activeProfileId, setActiveProfileIdState] = useState<number | null>(() => {
     const saved = localStorage.getItem("finagent_profile_id");
     return saved ? parseInt(saved, 10) : null;
   });
 
-  const { data: profiles = [], isLoading: isLoadingProfiles } = useListProfiles({
-    query: { enabled: isUserLoaded && !!user },
+  const {
+    data: profiles = [],
+    isLoading: isLoadingProfiles,
+    refetch: refetchProfiles,
+  } = useListProfiles({
+    query: { enabled: !isAuthLoading && !!user },
   });
 
   const createProfileMutation = useCreateProfile();
@@ -42,36 +46,37 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   // Auto-select only when there is exactly ONE active profile and nothing is stored
   useEffect(() => {
-    if (!isUserLoaded || !user) return;
+    if (isAuthLoading || !user) return;
     const activeProfiles = profiles.filter(p => p.status !== "archived");
     if (activeProfiles.length === 1 && !activeProfileId) {
       setActiveProfileId(activeProfiles[0].id);
     }
-  }, [isUserLoaded, user, profiles, activeProfileId]);
+  }, [isAuthLoading, user, profiles, activeProfileId]);
 
   // Clear stored profile if it no longer exists OR became archived
   useEffect(() => {
-    if (!isUserLoaded || !user || !activeProfileId) return;
+    if (isAuthLoading || !user || !activeProfileId) return;
     if (profiles.length === 0) return;
     const current = profiles.find(p => p.id === activeProfileId);
     if (!current || current.status === "archived") {
       setActiveProfileIdState(null);
       localStorage.removeItem("finagent_profile_id");
     }
-  }, [isUserLoaded, user, profiles, activeProfileId]);
+  }, [isAuthLoading, user, profiles, activeProfileId]);
 
   const createProfile = async (name: string): Promise<void> => {
     const profile = await createProfileMutation.mutateAsync({
       data: { name, isDefault: true },
     });
+    await refetchProfiles();
     setActiveProfileId(profile.id);
   };
 
-  const isLoading = !isUserLoaded || isLoadingProfiles;
-  const needsOnboarding = isUserLoaded && !!user && !isLoadingProfiles && profiles.length === 0;
+  const isLoading = isAuthLoading || isLoadingProfiles;
+  const needsOnboarding = !isAuthLoading && !!user && !isLoadingProfiles && profiles.length === 0;
   // Must select explicitly when >1 profile and none is currently active
   const needsProfileSelection =
-    isUserLoaded &&
+    !isAuthLoading &&
     !!user &&
     !isLoadingProfiles &&
     profiles.length > 1 &&

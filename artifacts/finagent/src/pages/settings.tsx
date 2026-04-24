@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useProfile } from "../contexts/ProfileContext";
-import { useAuth } from "@clerk/react";
+// Auth token is stored in localStorage
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +52,7 @@ async function callResetApi(profileId: number, scope: "transactions" | "full", t
 
 export default function SettingsPage() {
   const { activeProfileId } = useProfile();
-  const { getToken } = useAuth();
+  // Token is stored in localStorage during login
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -63,7 +63,7 @@ export default function SettingsPage() {
     if (!activeProfileId || !confirmScope) return;
     setLoading(true);
     try {
-      const token = await getToken();
+      const token = localStorage.getItem('auth_token');
       await callResetApi(activeProfileId, confirmScope, token);
       qc.invalidateQueries();
       const label = confirmScope === "full" ? "Todos os dados foram apagados." : "Transações e lançamentos apagados.";

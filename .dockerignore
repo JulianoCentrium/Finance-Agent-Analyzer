@@ -16,3 +16,6 @@ artifacts/mockup-sandbox
 deploy/.env
 deploy/.env.*
 !deploy/.env.example
+!artifacts/finagent/dist/
+!artifacts/finagent/dist/public/
+!artifacts/finagent/dist/public/**

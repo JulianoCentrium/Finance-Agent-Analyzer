@@ -11,7 +11,7 @@ import {
   UpdateCardInstallmentBody,
   DeleteCardInstallmentParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import { assertProfileOwnership, type AuthRequest } from "../lib/auth";
 
 const router: IRouter = Router();

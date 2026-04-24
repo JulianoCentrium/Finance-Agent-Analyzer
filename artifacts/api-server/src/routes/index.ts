@@ -19,9 +19,11 @@ import aiChatRouter from "./aiChat";
 import aiQueryLogsRouter from "./aiQueryLogs";
 import settingsRouter from "./settings";
 import reportsRouter from "./reports";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
+router.use(authRouter);
 router.use(healthRouter);
 router.use(usersRouter);
 router.use(profilesRouter);

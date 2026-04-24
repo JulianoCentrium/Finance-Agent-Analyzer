@@ -25,7 +25,7 @@ import {
   UpdateProfileResponse,
   DeleteProfileParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import type { AuthRequest } from "../lib/auth";
 import { seedDefaultData } from "../lib/defaultSeed";
 

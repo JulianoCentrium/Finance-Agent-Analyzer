@@ -3,6 +3,7 @@ import { db, profilesTable, categoriesTable, personsTable, commitmentTypesTable,
 import { eq, and } from "drizzle-orm";
 
 export interface AuthRequest extends Request {
+  authId: number;
   clerkUserId: string;
   authorizedProfileIds?: number[];
 }
@@ -149,3 +150,4 @@ export async function getAuthorizedProfileIds(clerkUserId: string): Promise<numb
     .where(eq(profilesTable.clerkUserId, clerkUserId));
   return profiles.map(p => p.id);
 }
+

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { sql, and, eq } from "drizzle-orm";
 import { db, aiQueryLogReviewsTable } from "@workspace/db";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/authMiddleware";
 import { assertProfileOwnership, type AuthRequest } from "../lib/auth";
 import { suggestIntent } from "../ai/intent-suggestion";
 

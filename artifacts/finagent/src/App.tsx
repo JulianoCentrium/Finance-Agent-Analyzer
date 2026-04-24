@@ -1,16 +1,17 @@
-import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { useEffect, useState } from "react";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProfileProvider, useProfile } from "./contexts/ProfileContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { Layout } from "./components/Layout";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
-import { useAuth } from "@clerk/react";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 import NotFound from "@/pages/not-found";
+import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import OnboardingPage from "@/pages/onboarding";
 import ProfileSelectPage from "@/pages/profile-select";
 import DashboardPage from "@/pages/dashboard";
@@ -32,13 +33,9 @@ const queryClient = new QueryClient({
     },
   },
 });
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-// The generated API client already includes /api prefix in all paths (from OpenAPI spec servers.url).
-// setBaseUrl should only be used when the API is at a different origin (e.g. mobile apps).
-// For web, the Replit proxy routes /api/* directly to the API server.
 setBaseUrl(basePath || null);
 
 function stripBase(path: string): string {
@@ -47,66 +44,13 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
-}
-
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/dashboard" />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
-}
-
-function SignInPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
-    </div>
-  );
-}
-
-function SignUpPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-    </div>
-  );
-}
-
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const queryClient = useQueryClient();
-  const prevUserIdRef = useRef<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-        queryClient.clear();
-      }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, queryClient]);
-
-  return null;
-}
-
-function ApiTokenSetter() {
-  const { getToken } = useAuth();
-  useEffect(() => {
-    setAuthTokenGetter(async () => {
-      return (await getToken()) ?? null;
-    });
-  }, [getToken]);
-  return null;
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Redirect to="/login" />;
+  }
+  return <Redirect to="/dashboard" />;
 }
 
 function ProtectedRouteInner({ component: Component }: { component: React.ComponentType }) {
@@ -137,64 +81,62 @@ function ProtectedRouteInner({ component: Component }: { component: React.Compon
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  return (
-    <>
-      <Show when="signed-in">
-        <ProtectedRouteInner component={Component} />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
-}
-
-function ClerkProviderWithRoutes() {
+  const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
+  if (!isAuthenticated) {
+    setLocation("/login");
+    return null;
+  }
+
+  return <ProtectedRouteInner component={Component} />;
+}
+
+function AppRoutes() {
+  const { token } = useAuth();
+
+  useEffect(() => {
+    if (token) {
+      setAuthTokenGetter(async () => token);
+    }
+  }, [token]);
+
   return (
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
-      routerPush={(to) => setLocation(stripBase(to))}
-      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-    >
-      <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
-        <ApiTokenSetter />
-        <ThemeProvider>
-          <ProfileProvider>
-            <TooltipProvider>
-              <Switch>
-                <Route path="/" component={HomeRedirect} />
-                <Route path="/sign-in/*?" component={SignInPage} />
-                <Route path="/sign-up/*?" component={SignUpPage} />
-                <Route path="/dashboard"><ProtectedRoute component={DashboardPage} /></Route>
-                <Route path="/credit-cards"><ProtectedRoute component={CreditCardsPage} /></Route>
-                <Route path="/bank-accounts"><ProtectedRoute component={BankAccountsPage} /></Route>
-                <Route path="/accounts-payable"><ProtectedRoute component={AccountsPayablePage} /></Route>
-                <Route path="/accounts-receivable"><ProtectedRoute component={AccountsReceivablePage} /></Route>
-                <Route path="/persons"><ProtectedRoute component={PersonsPage} /></Route>
-                <Route path="/categories"><ProtectedRoute component={CategoriesPage} /></Route>
-                <Route path="/reports"><ProtectedRoute component={ReportsPage} /></Route>
-                <Route path="/ai-copilot"><ProtectedRoute component={AiCopilotPage} /></Route>
-                <Route path="/settings"><ProtectedRoute component={SettingsPage} /></Route>
-                <Route path="/profiles"><ProtectedRoute component={ProfileSelectPage} /></Route>
-                <Route component={NotFound} />
-              </Switch>
-              <Toaster />
-            </TooltipProvider>
-          </ProfileProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ProfileProvider>
+          <TooltipProvider>
+            <Switch>
+              <Route path="/" component={HomeRedirect} />
+              <Route path="/login" component={LoginPage} />
+              <Route path="/register" component={RegisterPage} />
+              <Route path="/dashboard"><ProtectedRoute component={DashboardPage} /></Route>
+              <Route path="/credit-cards"><ProtectedRoute component={CreditCardsPage} /></Route>
+              <Route path="/bank-accounts"><ProtectedRoute component={BankAccountsPage} /></Route>
+              <Route path="/accounts-payable"><ProtectedRoute component={AccountsPayablePage} /></Route>
+              <Route path="/accounts-receivable"><ProtectedRoute component={AccountsReceivablePage} /></Route>
+              <Route path="/persons"><ProtectedRoute component={PersonsPage} /></Route>
+              <Route path="/categories"><ProtectedRoute component={CategoriesPage} /></Route>
+              <Route path="/reports"><ProtectedRoute component={ReportsPage} /></Route>
+              <Route path="/ai-copilot"><ProtectedRoute component={AiCopilotPage} /></Route>
+              <Route path="/settings"><ProtectedRoute component={SettingsPage} /></Route>
+              <Route path="/profiles"><ProtectedRoute component={ProfileSelectPage} /></Route>
+              <Route component={NotFound} />
+            </Switch>
+            <Toaster />
+          </TooltipProvider>
+        </ProfileProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </WouterRouter>
   );
 }
