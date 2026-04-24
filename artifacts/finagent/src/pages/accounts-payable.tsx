@@ -509,7 +509,7 @@ export default function AccountsPayablePage() {
                     <TableCell className="text-right font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
-                        {item.status === "open" && (
+                        {(item.status === "open" || item.status === "overdue") && (
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-green-500 hover:text-green-400"
                             onClick={() => setPayItem(item)} title="Registrar pagamento">
                             <CheckCircle className="w-3 h-3" />
