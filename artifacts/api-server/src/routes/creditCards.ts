@@ -61,6 +61,11 @@ router.get("/credit-cards", requireAuth, async (req, res): Promise<void> => {
   res.json(ListCreditCardsResponse.parse(result));
 });
 
+async function serializeCard(card: typeof creditCardsTable.$inferSelect) {
+  const usedAmount = await getCardUsedAmount(card.id);
+  return { ...parseCard(card), usedAmount };
+}
+
 router.post("/credit-cards", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthRequest;
   const parsed = CreateCreditCardBody.safeParse(req.body);
@@ -72,7 +77,7 @@ router.post("/credit-cards", requireAuth, async (req, res): Promise<void> => {
 
   const { creditLimit, ...restInsert } = parsed.data;
   const [card] = await db.insert(creditCardsTable).values({ ...restInsert, creditLimit: creditLimit !== undefined ? String(creditLimit) : undefined }).returning();
-  res.status(201).json(GetCreditCardResponse.parse(parseCard(card)));
+  res.status(201).json(GetCreditCardResponse.parse(await serializeCard(card)));
 });
 
 router.get("/credit-cards/:id", requireAuth, async (req, res): Promise<void> => {
@@ -88,7 +93,7 @@ router.get("/credit-cards/:id", requireAuth, async (req, res): Promise<void> => 
     return;
   }
   if (!(await assertProfileOwnership(res, clerkUserId, card.profileId))) return;
-  res.json(GetCreditCardResponse.parse(parseCard(card)));
+  res.json(GetCreditCardResponse.parse(await serializeCard(card)));
 });
 
 router.patch("/credit-cards/:id", requireAuth, async (req, res): Promise<void> => {
@@ -115,7 +120,7 @@ router.patch("/credit-cards/:id", requireAuth, async (req, res): Promise<void> =
     .set((() => { const { creditLimit, ...rest } = parsed.data; return { ...rest, ...(creditLimit !== undefined && { creditLimit: String(creditLimit) }) }; })())
     .where(eq(creditCardsTable.id, params.data.id))
     .returning();
-  res.json(UpdateCreditCardResponse.parse(parseCard(card!)));
+  res.json(UpdateCreditCardResponse.parse(await serializeCard(card!)));
 });
 
 router.delete("/credit-cards/:id", requireAuth, async (req, res): Promise<void> => {
