@@ -44,31 +44,32 @@ function stripBase(path: string): string {
     : path;
 }
 
+function FullPageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        Carregando...
+      </div>
+    </div>
+  );
+}
+
 function HomeRedirect() {
-  const { isAuthenticated } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Redirect to="/login" />;
-  }
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <FullPageLoader />;
+  if (!isAuthenticated) return <Redirect to="/login" />;
   return <Redirect to="/dashboard" />;
 }
 
 function ProtectedRouteInner({ component: Component }: { component: React.ComponentType }) {
   const { needsOnboarding, needsProfileSelection, isLoading } = useProfile();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Carregando...
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <FullPageLoader />;
 
   if (needsOnboarding) return <OnboardingPage />;
   if (needsProfileSelection) return <ProfileSelectPage />;
@@ -81,13 +82,10 @@ function ProtectedRouteInner({ component: Component }: { component: React.Compon
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    setLocation("/login");
-    return null;
-  }
+  if (isLoading) return <FullPageLoader />;
+  if (!isAuthenticated) return <Redirect to="/login" />;
 
   return <ProtectedRouteInner component={Component} />;
 }

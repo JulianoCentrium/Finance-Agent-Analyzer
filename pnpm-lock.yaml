@@ -206,7 +206,7 @@ importers:
         specifier: ^5.0.6
         version: 5.0.6
       '@types/jsonwebtoken':
-        specifier: ^9.0.7
+        specifier: ^9.0.10
         version: 9.0.10
       '@types/node':
         specifier: 'catalog:'
