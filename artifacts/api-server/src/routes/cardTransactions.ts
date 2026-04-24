@@ -101,21 +101,40 @@ async function findOrCreateInvoice(
 }
 
 /** Recalculate and persist invoice totalAmount, and sync the accounts_payable row.
- * Cancelled transactions are excluded from the sum. */
-async function recalcInvoice(invoiceId: number) {
+ * Cancelled transactions (and individually paid installments) are excluded from the sum.
+ * When `ensureAccountsPayable` is true and the invoice has no accounts_payable yet,
+ * one is created so the user has a payable to settle. */
+async function recalcInvoice(invoiceId: number, ensureAccountsPayable = false) {
   const [totals] = await db
     .select({ total: sql<string>`COALESCE(SUM(${cardTransactionsTable.amount}), 0)` })
     .from(cardTransactionsTable)
     .where(and(eq(cardTransactionsTable.invoiceId, invoiceId), eq(cardTransactionsTable.status, "active")));
   const totalAmount = String(totals?.total ?? 0);
   await db.update(invoicesTable).set({ totalAmount }).where(eq(invoicesTable.id, invoiceId));
-  // Sync accounts_payable amount when present
+  // Sync accounts_payable amount when present, or create when requested.
   const [ap] = await db
     .select({ id: accountsPayableTable.id })
     .from(accountsPayableTable)
     .where(eq(accountsPayableTable.invoiceId, invoiceId));
   if (ap) {
     await db.update(accountsPayableTable).set({ amount: totalAmount }).where(eq(accountsPayableTable.id, ap.id));
+  } else if (ensureAccountsPayable) {
+    const [invoice] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoiceId));
+    if (invoice?.dueDate) {
+      const [card] = await db
+        .select({ name: creditCardsTable.name })
+        .from(creditCardsTable)
+        .where(eq(creditCardsTable.id, invoice.cardId));
+      await db.insert(accountsPayableTable).values({
+        profileId: invoice.profileId,
+        description: `Fatura ${card?.name ?? ""} ${String(invoice.month).padStart(2, "0")}/${invoice.year}`,
+        amount: totalAmount,
+        dueDate: invoice.dueDate,
+        status: "open",
+        invoiceId,
+        recurrent: false,
+      });
+    }
   }
   return totalAmount;
 }
@@ -237,7 +256,7 @@ router.post("/card-transactions", requireAuth, async (req, res): Promise<void> =
     source: "manual",
   }).returning();
 
-  if (row.invoiceId) await recalcInvoice(row.invoiceId);
+  if (row.invoiceId) await recalcInvoice(row.invoiceId, true);
 
   const full = await getTransactionWithCategory(row.id);
   res.status(201).json(parseTransaction(full!));
