@@ -136,7 +136,7 @@ function CardForm({ initial, onSave, onCancel }: {
 
 function TransactionForm({ initial, invoiceId, cardId, profileId, categories, onSave, onCancel, onCreateCategory }: {
   initial?: TxFormData | null;
-  invoiceId: number;
+  invoiceId?: number;
   cardId: number;
   profileId: number;
   categories: { id: number; name: string }[];
@@ -477,11 +477,10 @@ function CardDetail({ card }: { card: CreditCardType }) {
   };
 
   const handleAddTx = async (data: TxFormData) => {
-    if (!selectedInvoice) return;
     try {
       const created = await createTx.mutateAsync({
         data: {
-          invoiceId: selectedInvoice.id,
+          ...(selectedInvoice ? { invoiceId: selectedInvoice.id } : { year: selYear, month: selMonth }),
           cardId: card.id,
           profileId,
           date: data.date,
@@ -737,7 +736,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
             <Upload className="w-3 h-3" /> Importar
           </Button>
           {!isLocked && (
-            <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowAddTx(true)} disabled={!selectedInvoice}>
+            <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowAddTx(true)}>
               <Plus className="w-3 h-3" /> Lançamento
             </Button>
           )}
@@ -1026,17 +1025,15 @@ function CardDetail({ card }: { card: CreditCardType }) {
           <DialogHeader>
             <DialogTitle>Novo Lançamento Manual</DialogTitle>
           </DialogHeader>
-          {selectedInvoice && (
-            <TransactionForm
-              invoiceId={selectedInvoice.id}
-              cardId={card.id}
-              profileId={profileId}
-              categories={expenseCategories}
-              onSave={handleAddTx}
-              onCancel={() => setShowAddTx(false)}
-              onCreateCategory={handleCreateCategory}
-            />
-          )}
+          <TransactionForm
+            invoiceId={selectedInvoice?.id}
+            cardId={card.id}
+            profileId={profileId}
+            categories={expenseCategories}
+            onSave={handleAddTx}
+            onCancel={() => setShowAddTx(false)}
+            onCreateCategory={handleCreateCategory}
+          />
         </DialogContent>
       </Dialog>
 

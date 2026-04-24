@@ -203,17 +203,35 @@ router.post("/card-transactions", requireAuth, async (req, res): Promise<void> =
   if (!(await assertInvoiceOwnership(res, parsed.data.invoiceId ?? null, parsed.data.profileId))) return;
   if (!(await assertCategoryOwnership(res, parsed.data.categoryId ?? null, parsed.data.profileId))) return;
 
+  let resolvedInvoiceId: number;
+
   if (parsed.data.invoiceId) {
     const [inv] = await db.select({ status: invoicesTable.status }).from(invoicesTable).where(eq(invoicesTable.id, parsed.data.invoiceId));
     if (inv?.status === "closed") {
       res.status(423).json({ error: "Fatura fechada. Reabre a fatura para adicionar transações." });
       return;
     }
+    resolvedInvoiceId = parsed.data.invoiceId;
+  } else {
+    const { year, month } = parsed.data;
+    if (!year || !month) {
+      res.status(400).json({ error: "Informe invoiceId ou year+month para criar a fatura automaticamente." });
+      return;
+    }
+    const [card] = await db.select({ dueDay: creditCardsTable.dueDay }).from(creditCardsTable).where(eq(creditCardsTable.id, parsed.data.cardId));
+    const dueDay = card?.dueDay ?? 10;
+    const { id, locked } = await findOrCreateInvoice(parsed.data.cardId, parsed.data.profileId, year, month, dueDay);
+    if (locked) {
+      res.status(423).json({ error: "Fatura fechada. Reabre a fatura para adicionar transações." });
+      return;
+    }
+    resolvedInvoiceId = id;
   }
 
-  const { amount, date: txDate, ...restInsert } = parsed.data;
+  const { amount, date: txDate, year: _year, month: _month, invoiceId: _invoiceId, ...restInsert } = parsed.data;
   const [row] = await db.insert(cardTransactionsTable).values({
     ...restInsert,
+    invoiceId: resolvedInvoiceId,
     amount: String(amount),
     date: txDate instanceof Date ? txDate.toISOString().split("T")[0] : txDate,
     source: "manual",

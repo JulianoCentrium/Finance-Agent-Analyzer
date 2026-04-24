@@ -2357,7 +2357,11 @@ components:
       type: object
       properties:
         invoiceId:
-          type: integer
+          type: ["integer", "null"]
+        year:
+          type: ["integer", "null"]
+        month:
+          type: ["integer", "null"]
         cardId:
           type: integer
         profileId:
@@ -2375,7 +2379,7 @@ components:
           type: ["integer", "null"]
         totalInstallments:
           type: ["integer", "null"]
-      required: [invoiceId, cardId, profileId, date, description, amount]
+      required: [cardId, profileId, date, description, amount]
 
     UpdateCardTransactionBody:
       type: object

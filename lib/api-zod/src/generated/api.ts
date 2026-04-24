@@ -722,7 +722,9 @@ export const ListCardTransactionsResponse = zod.array(ListCardTransactionsRespon
  * @summary Create a card transaction
  */
 export const CreateCardTransactionBody = zod.object({
-  "invoiceId": zod.number(),
+  "invoiceId": zod.number().nullish(),
+  "year": zod.number().nullish(),
+  "month": zod.number().nullish(),
   "cardId": zod.number(),
   "profileId": zod.number(),
   "date": zod.coerce.date(),

@@ -394,7 +394,12 @@ export interface CardTransaction {
 }
 
 export interface CreateCardTransactionBody {
-  invoiceId: number;
+  /** @nullable */
+  invoiceId?: number | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  month?: number | null;
   cardId: number;
   profileId: number;
   date: string;
