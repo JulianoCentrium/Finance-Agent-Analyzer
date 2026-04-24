@@ -2347,7 +2347,7 @@ components:
           enum: [manual, imported, installment_generated]
         status:
           type: string
-          enum: [active, cancelled]
+          enum: [active, cancelled, paid]
         createdAt:
           type: string
           format: date-time
@@ -2395,7 +2395,7 @@ components:
           type: number
         status:
           type: string
-          enum: [active, cancelled]
+          enum: [active, cancelled, paid]
 
     ImportCardTransactionsBody:
       type: object

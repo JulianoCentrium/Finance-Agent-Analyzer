@@ -263,6 +263,12 @@ router.patch("/card-transactions/:id", requireAuth, async (req, res): Promise<vo
   if (!(await assertProfileOwnership(res, clerkUserId, existing.profileId))) return;
   if (!(await assertCategoryOwnership(res, parsed.data.categoryId ?? null, existing.profileId))) return;
 
+  // Status 'paid' (baixa) is restricted to installment transactions only
+  if (parsed.data.status === "paid" && !existing.isInstallment) {
+    res.status(422).json({ error: "Apenas parcelas (transações parceladas) podem ser marcadas como pagas." });
+    return;
+  }
+
   // Non-manual (imported/installment_generated) transactions: only allow category + status updates
   if (existing.source !== "manual") {
     const hasDisallowedField = Object.keys(parsed.data).some(k => k !== "categoryId" && k !== "status" && parsed.data[k as keyof typeof parsed.data] !== undefined);

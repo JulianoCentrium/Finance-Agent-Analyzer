@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CategoryPicker } from "@/components/ui/category-picker";
-import { CreditCard, Plus, Upload, Pencil, Trash2, Lock, LockOpen, ChevronDown, ChevronUp, Layers, Ban, Undo2, ListOrdered } from "lucide-react";
+import { CreditCard, Plus, Upload, Pencil, Trash2, Lock, LockOpen, ChevronDown, ChevronUp, Layers, Ban, Undo2, ListOrdered, CheckCircle2, RotateCcw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -652,6 +652,16 @@ function CardDetail({ card }: { card: CreditCardType }) {
     }
   };
 
+  const handleTogglePaidTx = async (tx: CardTransaction, status: "active" | "paid") => {
+    try {
+      await updateTx.mutateAsync({ id: tx.id, data: { status } });
+      qc.invalidateQueries();
+      toast({ title: status === "paid" ? "Parcela quitada" : "Baixa desfeita" });
+    } catch {
+      toast({ title: "Erro ao atualizar status", variant: "destructive" });
+    }
+  };
+
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = [year - 2, year - 1, year, year + 1];
 
@@ -780,13 +790,15 @@ function CardDetail({ card }: { card: CreditCardType }) {
                   <TableBody>
                     {transactions.map(tx => {
                       const isCancelled = tx.status === "cancelled";
+                      const isPaid = tx.status === "paid";
+                      const isLockedRow = isCancelled || isPaid;
                       return (
                       <TableRow key={tx.id} className={`h-9 ${isCancelled ? "opacity-50" : ""}`}>
                         <TableCell className={`text-xs py-1 tabular-nums ${isCancelled ? "line-through" : ""}`}>{formatDate(tx.date)}</TableCell>
                         <TableCell className="text-xs py-1 max-w-[200px]">
-                          <span className={`line-clamp-1 ${isCancelled ? "line-through" : ""}`}>{tx.description}</span>
+                          <span className={`line-clamp-1 ${isCancelled ? "line-through" : ""} ${isPaid ? "text-green-600 dark:text-green-500" : ""}`}>{tx.description}</span>
                           {tx.isInstallment && tx.installmentNumber && tx.totalInstallments ? (
-                            (isLocked || isCancelled) ? (
+                            (isLocked || isLockedRow) ? (
                               <span className="ml-1 text-muted-foreground text-[10px]">
                                 {tx.installmentNumber}/{tx.totalInstallments}
                               </span>
@@ -805,7 +817,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
                                 <TooltipContent side="top">Clique para redefinir a parcela</TooltipContent>
                               </Tooltip>
                             )
-                          ) : (!tx.isInstallment && !isLocked && !isCancelled) ? (
+                          ) : (!tx.isInstallment && !isLocked && !isLockedRow) ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
@@ -823,6 +835,9 @@ function CardDetail({ card }: { card: CreditCardType }) {
                           {isCancelled && (
                             <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1 border-destructive/40 text-destructive">cancelada</Badge>
                           )}
+                          {isPaid && (
+                            <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1 border-green-500/40 text-green-600 dark:text-green-500">paga</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs py-1">
                           <CategoryCell tx={tx} categories={expenseCategories} onUpdate={cid => handleUpdateCategory(tx, cid)} onCreateCategory={handleCreateCategory} />
@@ -832,7 +847,18 @@ function CardDetail({ card }: { card: CreditCardType }) {
                         </TableCell>
                         <TableCell className="py-1">
                           <div className="flex gap-0.5 justify-end">
-                            {!isLocked && (
+                            {tx.isInstallment && !isLocked && !isCancelled && (
+                              isPaid ? (
+                                <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-amber-500" onClick={() => handleTogglePaidTx(tx, "active")} title="Desfazer baixa">
+                                  <RotateCcw className="w-3 h-3" />
+                                </Button>
+                              ) : (
+                                <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-green-500" onClick={() => handleTogglePaidTx(tx, "paid")} title="Dar baixa (marcar como paga)">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                </Button>
+                              )
+                            )}
+                            {!isLocked && !isPaid && (
                               isCancelled ? (
                                 <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-green-500" onClick={() => handleToggleCancelTx(tx, "active")} title="Reativar">
                                   <Undo2 className="w-3 h-3" />
@@ -843,12 +869,12 @@ function CardDetail({ card }: { card: CreditCardType }) {
                                 </Button>
                               )
                             )}
-                            {tx.source === "manual" && !isLocked && !isCancelled && (
+                            {tx.source === "manual" && !isLocked && !isLockedRow && (
                               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditTx(tx)} title="Editar">
                                 <Pencil className="w-3 h-3" />
                               </Button>
                             )}
-                            {!isLocked && !isCancelled && (
+                            {!isLocked && !isLockedRow && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -859,7 +885,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
                                 <ListOrdered className="w-3 h-3" />
                               </Button>
                             )}
-                            {tx.source === "manual" && !isLocked && !isCancelled && (
+                            {tx.source === "manual" && !isLocked && !isLockedRow && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -870,7 +896,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
                                 <Layers className="w-3 h-3" />
                               </Button>
                             )}
-                            {tx.source === "manual" && !isLocked && (
+                            {tx.source === "manual" && !isLocked && !isPaid && (
                               <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-destructive" onClick={() => handleDeleteTx(tx)} title="Excluir">
                                 <Trash2 className="w-3 h-3" />
                               </Button>

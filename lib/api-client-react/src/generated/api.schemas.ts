@@ -369,6 +369,7 @@ export type CardTransactionStatus = typeof CardTransactionStatus[keyof typeof Ca
 export const CardTransactionStatus = {
   active: 'active',
   cancelled: 'cancelled',
+  paid: 'paid',
 } as const;
 
 export interface CardTransaction {
@@ -419,6 +420,7 @@ export type UpdateCardTransactionBodyStatus = typeof UpdateCardTransactionBodySt
 export const UpdateCardTransactionBodyStatus = {
   active: 'active',
   cancelled: 'cancelled',
+  paid: 'paid',
 } as const;
 
 export interface UpdateCardTransactionBody {

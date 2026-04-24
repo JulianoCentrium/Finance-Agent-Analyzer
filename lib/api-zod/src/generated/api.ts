@@ -712,7 +712,7 @@ export const ListCardTransactionsResponseItem = zod.object({
   "totalInstallments": zod.number().nullish(),
   "isInstallment": zod.boolean(),
   "source": zod.enum(['manual', 'imported', 'installment_generated']),
-  "status": zod.enum(['active', 'cancelled']),
+  "status": zod.enum(['active', 'cancelled', 'paid']),
   "createdAt": zod.coerce.date()
 })
 export const ListCardTransactionsResponse = zod.array(ListCardTransactionsResponseItem)
@@ -757,7 +757,7 @@ export const GetCardTransactionResponse = zod.object({
   "totalInstallments": zod.number().nullish(),
   "isInstallment": zod.boolean(),
   "source": zod.enum(['manual', 'imported', 'installment_generated']),
-  "status": zod.enum(['active', 'cancelled']),
+  "status": zod.enum(['active', 'cancelled', 'paid']),
   "createdAt": zod.coerce.date()
 })
 
@@ -774,7 +774,7 @@ export const UpdateCardTransactionBody = zod.object({
   "description": zod.string().optional(),
   "date": zod.coerce.date().optional(),
   "amount": zod.number().optional(),
-  "status": zod.enum(['active', 'cancelled']).optional()
+  "status": zod.enum(['active', 'cancelled', 'paid']).optional()
 })
 
 export const UpdateCardTransactionResponse = zod.object({
@@ -791,7 +791,7 @@ export const UpdateCardTransactionResponse = zod.object({
   "totalInstallments": zod.number().nullish(),
   "isInstallment": zod.boolean(),
   "source": zod.enum(['manual', 'imported', 'installment_generated']),
-  "status": zod.enum(['active', 'cancelled']),
+  "status": zod.enum(['active', 'cancelled', 'paid']),
   "createdAt": zod.coerce.date()
 })
 
