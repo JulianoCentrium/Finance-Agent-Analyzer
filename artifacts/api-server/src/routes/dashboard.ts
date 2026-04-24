@@ -208,14 +208,13 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
   for (const card of cards) {
     cardsTotalLimit += Number(card.creditLimit);
     const [usedRow] = await db
-      .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
+      .select({ total: sql<string>`COALESCE(SUM(${cardTransactionsTable.amount}), 0)` })
       .from(cardTransactionsTable)
       .leftJoin(invoicesTable, eq(cardTransactionsTable.invoiceId, invoicesTable.id))
       .where(
         and(
           eq(cardTransactionsTable.cardId, card.id),
-          sql`${cardTransactionsTable.amount} < 0`,
-          sql`${cardTransactionsTable.status} != 'cancelled'`,
+          sql`${cardTransactionsTable.status} = 'active'`,
           or(
             sql`${cardTransactionsTable.invoiceId} IS NULL`,
             sql`${invoicesTable.status} != 'paid'`,
