@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -1218,7 +1219,7 @@ export default function CreditCardsPage() {
     if (!allTransactions) return [];
     let txs = allTransactions.filter(tx => {
       const txDate = typeof tx.date === "string" ? tx.date : (tx.date as Date).toISOString().split("T")[0];
-      return txDate.startsWith(analysisDatePrefix);
+      return txDate.startsWith(analysisDatePrefix) && tx.status !== "cancelled";
     });
     if (analysisCardId !== "all") txs = txs.filter(tx => tx.cardId === Number(analysisCardId));
     if (analysisCategoryId !== "all") txs = txs.filter(tx => String(tx.categoryId ?? "none") === analysisCategoryId);
@@ -1350,12 +1351,31 @@ export default function CreditCardsPage() {
                         </Button>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-border">
+                    <div className="mt-3 pt-3 border-t border-border space-y-1.5">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Limite</span>
                         <span className="font-medium">{formatCurrency(card.creditLimit)}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Utilizado</span>
+                        <span className="font-medium text-foreground">{formatCurrency(card.usedAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Disponível</span>
+                        <span className="font-medium text-emerald-500">{formatCurrency(Math.max(0, card.creditLimit - card.usedAmount))}</span>
+                      </div>
+                      {card.creditLimit > 0 && (
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <Progress
+                            value={Math.min(100, Math.round((card.usedAmount / card.creditLimit) * 100))}
+                            className="h-1.5 flex-1"
+                          />
+                          <span className="text-[10px] text-muted-foreground tabular-nums w-8 text-right">
+                            {Math.min(100, Math.round((card.usedAmount / card.creditLimit) * 100))}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs text-muted-foreground pt-0.5">
                         <span>Fecha dia {card.closingDay}</span>
                         <span>Vence dia {card.dueDay}</span>
                       </div>

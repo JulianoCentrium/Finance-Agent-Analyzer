@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, creditCardsTable } from "@workspace/db";
+import { and, eq, or, sql } from "drizzle-orm";
+import { db, creditCardsTable, cardTransactionsTable, invoicesTable } from "@workspace/db";
 import {
   ListCreditCardsQueryParams,
   ListCreditCardsResponse,
@@ -21,6 +21,25 @@ function parseCard(card: typeof creditCardsTable.$inferSelect) {
   return { ...card, creditLimit: Number(card.creditLimit) };
 }
 
+async function getCardUsedAmount(cardId: number): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
+    .from(cardTransactionsTable)
+    .leftJoin(invoicesTable, eq(cardTransactionsTable.invoiceId, invoicesTable.id))
+    .where(
+      and(
+        eq(cardTransactionsTable.cardId, cardId),
+        sql`${cardTransactionsTable.amount} < 0`,
+        sql`${cardTransactionsTable.status} != 'cancelled'`,
+        or(
+          sql`${cardTransactionsTable.invoiceId} IS NULL`,
+          sql`${invoicesTable.status} != 'paid'`,
+        ),
+      )
+    );
+  return Number(row?.total ?? 0);
+}
+
 router.get("/credit-cards", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthRequest;
   const parsed = ListCreditCardsQueryParams.safeParse(req.query);
@@ -35,7 +54,11 @@ router.get("/credit-cards", requireAuth, async (req, res): Promise<void> => {
     .from(creditCardsTable)
     .where(eq(creditCardsTable.profileId, parsed.data.profileId))
     .orderBy(creditCardsTable.name);
-  res.json(ListCreditCardsResponse.parse(cards.map(parseCard)));
+
+  const usedAmounts = await Promise.all(cards.map(c => getCardUsedAmount(c.id)));
+  const result = cards.map((card, i) => ({ ...parseCard(card), usedAmount: usedAmounts[i] }));
+
+  res.json(ListCreditCardsResponse.parse(result));
 });
 
 router.post("/credit-cards", requireAuth, async (req, res): Promise<void> => {

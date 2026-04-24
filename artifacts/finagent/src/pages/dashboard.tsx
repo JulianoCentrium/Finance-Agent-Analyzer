@@ -71,6 +71,7 @@ function ProgressSummaryCard({
   total,
   used,
   usedLabel,
+  showAvailable,
   icon: Icon,
   loading,
   competence,
@@ -80,6 +81,7 @@ function ProgressSummaryCard({
   total: number;
   used: number;
   usedLabel: string;
+  showAvailable?: boolean;
   icon: React.ElementType;
   loading: boolean;
   competence?: string;
@@ -87,6 +89,7 @@ function ProgressSummaryCard({
 }) {
   const [, navigate] = useLocation();
   const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  const available = total - used;
 
   return (
     <Card
@@ -114,6 +117,11 @@ function ProgressSummaryCard({
             <p className="text-xs text-muted-foreground mt-1">
               {usedLabel}: <span className="font-medium text-foreground">{formatCurrency(used)}</span>
             </p>
+            {showAvailable && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Disponível: <span className="font-medium text-emerald-500">{formatCurrency(Math.max(0, available))}</span>
+              </p>
+            )}
             <div className="flex items-center gap-2 mt-3">
               <Progress value={percent} className="h-2 flex-1" />
               <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{percent}%</span>
@@ -411,6 +419,7 @@ export default function DashboardPage() {
           total={summary?.cardsTotalLimit ?? 0}
           used={summary?.cardsTotalUsed ?? 0}
           usedLabel="Usado"
+          showAvailable
           icon={CreditCard}
           loading={loadingSummary}
           href="/credit-cards"

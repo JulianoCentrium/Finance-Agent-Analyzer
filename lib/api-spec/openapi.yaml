@@ -2185,6 +2185,9 @@ components:
           type: ["string", "null"]
         creditLimit:
           type: number
+        usedAmount:
+          type: number
+          description: Sum of all non-cancelled transactions on unpaid invoices (consumes the limit)
         closingDay:
           type: integer
         dueDay:
@@ -2199,7 +2202,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-      required: [id, profileId, name, brand, creditLimit, closingDay, dueDay, color, isActive, createdAt, updatedAt]
+      required: [id, profileId, name, brand, creditLimit, usedAmount, closingDay, dueDay, color, isActive, createdAt, updatedAt]
 
     CreateCreditCardBody:
       type: object

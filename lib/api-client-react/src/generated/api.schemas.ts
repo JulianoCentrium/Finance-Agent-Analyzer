@@ -250,6 +250,8 @@ export interface CreditCard {
   /** @nullable */
   lastFour?: string | null;
   creditLimit: number;
+  /** Sum of all non-cancelled transactions on unpaid invoices (consumes the limit) */
+  usedAmount: number;
   closingDay: number;
   dueDay: number;
   color: string;
