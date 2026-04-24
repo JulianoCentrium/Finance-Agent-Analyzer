@@ -2790,7 +2790,19 @@ components:
           type: number
         cardsTotalLimit:
           type: number
-      required: [totalBalance, monthExpenses, futureInstallments, monthPaidPayables, monthTotalPayables, monthReceivedReceivables, monthTotalReceivables, cardsTotalUsed, cardsTotalLimit]
+        futureInstallmentsByCard:
+          type: array
+          items:
+            type: object
+            properties:
+              cardId:
+                type: integer
+              cardName:
+                type: string
+              total:
+                type: number
+            required: [cardId, cardName, total]
+      required: [totalBalance, monthExpenses, futureInstallments, monthPaidPayables, monthTotalPayables, monthReceivedReceivables, monthTotalReceivables, cardsTotalUsed, cardsTotalLimit, futureInstallmentsByCard]
 
     RecentTransaction:
       type: object

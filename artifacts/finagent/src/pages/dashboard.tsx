@@ -9,6 +9,8 @@ import { formatCurrency, formatCompact, formatDate, currentYearMonth, monthName 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useState } from "react";
 import {
   TrendingDown,
   Wallet,
@@ -126,6 +128,78 @@ function ProgressSummaryCard({
   );
 }
 
+function FutureInstallmentsCard({
+  total,
+  byCard,
+  loading,
+  onCardClick,
+}: {
+  total: number;
+  byCard: Array<{ cardId: number; cardName: string; total: number }>;
+  loading: boolean;
+  onCardClick: (cardId: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasBreakdown = byCard.length > 0;
+  const trigger = (
+    <Card
+      className={hasBreakdown ? "cursor-pointer hover:shadow-md transition-shadow select-none" : ""}
+    >
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Parcelas (3 meses)</p>
+            {loading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <p className="text-2xl font-bold text-foreground">{formatCompact(total)}</p>
+            )}
+            {hasBreakdown && (
+              <p className="text-xs text-muted-foreground">
+                {byCard.length} {byCard.length === 1 ? "cartão" : "cartões"} · clique para ver
+              </p>
+            )}
+          </div>
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Clock className="w-5 h-5 text-primary" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (!hasBreakdown) return trigger;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-72 p-2" align="start">
+        <p className="text-xs text-muted-foreground px-2 py-1">
+          Parcelas futuras por cartão
+        </p>
+        <div className="space-y-1">
+          {byCard.map((item) => (
+            <button
+              key={item.cardId}
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onCardClick(item.cardId);
+              }}
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-muted/60 transition-colors text-left"
+            >
+              <span className="text-sm font-medium text-foreground truncate">{item.cardName}</span>
+              <span className="text-sm tabular-nums text-foreground">
+                {formatCurrency(item.total)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function DashboardPage() {
   const { activeProfileId } = useProfile();
   const [, navigate] = useLocation();
@@ -187,12 +261,11 @@ export default function DashboardPage() {
           color="text-red-500"
           href="/credit-cards"
         />
-        <SummaryCard
-          title="Parcelas (3 meses)"
-          value={formatCompact(summary?.futureInstallments ?? 0)}
-          icon={Clock}
+        <FutureInstallmentsCard
+          total={summary?.futureInstallments ?? 0}
+          byCard={summary?.futureInstallmentsByCard ?? []}
           loading={loadingSummary}
-          href="/reports"
+          onCardClick={(cardId) => navigate(`/credit-cards?cardId=${cardId}`)}
         />
       </div>
 

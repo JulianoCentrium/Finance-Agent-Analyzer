@@ -54,6 +54,7 @@ import { CreditCard, Plus, Upload, Pencil, Trash2, Lock, LockOpen, ChevronDown, 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 
 interface CardFormData {
   name: string;
@@ -1058,6 +1059,20 @@ export default function CreditCardsPage() {
   const [editCard, setEditCard] = useState<CreditCardType | null>(null);
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null);
   const [cardSearch, setCardSearch] = useState("");
+
+  const search = useSearch();
+  useEffect(() => {
+    if (!cards) return;
+    const params = new URLSearchParams(search);
+    const cardIdStr = params.get("cardId");
+    if (!cardIdStr) return;
+    const cardId = Number(cardIdStr);
+    const found = cards.find(c => c.id === cardId);
+    if (found && selectedCard?.id !== found.id) {
+      setSelectedCard(found);
+      setPageTab("cards");
+    }
+  }, [search, cards]);
 
   // Analysis filters
   const [analysisYear, setAnalysisYear] = useState(curYear);

@@ -782,6 +782,12 @@ export interface UpdateCategoryRuleBody {
   categoryId?: number;
 }
 
+export type DashboardSummaryFutureInstallmentsByCardItem = {
+  cardId: number;
+  cardName: string;
+  total: number;
+};
+
 export interface DashboardSummary {
   totalBalance: number;
   monthExpenses: number;
@@ -792,6 +798,7 @@ export interface DashboardSummary {
   monthTotalReceivables: number;
   cardsTotalUsed: number;
   cardsTotalLimit: number;
+  futureInstallmentsByCard: DashboardSummaryFutureInstallmentsByCardItem[];
 }
 
 export type RecentTransactionType =

@@ -1,0 +1,226 @@
+Perfeito — vou ajustar o texto para deixar **explícito que o botão deve ficar ao lado das ações existentes**, não dentro de menu.
+Segue o **prompt revisado e pronto para envio**:
+
+---
+
+# Adicionar botão "Definir parcela" ao lado das ações da transação
+
+**Página afetada:**
+`/credit-cards`
+
+**Objetivo:**
+Criar um atalho direto e visível para permitir que o usuário informe manualmente que uma transação é parcelada, quando o sistema não identificou automaticamente.
+
+Esse ajuste é **mínimo viável (MVP)** e deve permitir acesso rápido ao recurso de definição de parcelas.
+
+---
+
+# Problema atual
+
+Existem transações que são parceladas, mas não possuem identificação automática.
+
+Mesmo já existindo a lógica de parcelamento no sistema, **falta um atalho visível ao lado das ações da transação**, o que dificulta corrigir parcelamentos manualmente.
+
+---
+
+# Novo comportamento obrigatório
+
+Na lista de transações (`card_transactions`) da tela:
+
+`/credit-cards`
+
+Adicionar um novo botão:
+
+# **Definir parcela**
+
+---
+
+# Posicionamento obrigatório
+
+O botão:
+
+**Definir parcela**
+
+deve aparecer:
+
+* **Ao lado das ações existentes**
+* Na mesma linha da transação
+* Próximo dos botões já existentes (ex: editar, cancelar, etc.)
+
+Não colocar dentro de menu dropdown.
+
+Deve ser um botão direto e visível.
+
+---
+
+# Regra de exibição
+
+Mostrar o botão **somente quando:**
+
+* A transação **não possui parcelamento definido**
+
+Ou seja:
+
+Quando:
+
+* `current_installment` estiver vazio
+  ou
+* `total_installments` estiver vazio
+
+---
+
+# Quando NÃO mostrar
+
+Se a transação já possuir parcelamento:
+
+Não mostrar o botão **Definir parcela**.
+
+Nesse caso manter:
+
+* Badge de parcela (ex: 2/8)
+* Comportamento atual existente
+
+---
+
+# Comportamento ao clicar
+
+Ao clicar em:
+
+**Definir parcela**
+
+Abrir o modal:
+
+# **Redefinir Número da Parcela**
+
+Reutilizar o modal existente, se já houver.
+
+Não criar novo modal se já existir.
+
+---
+
+# Conteúdo do modal
+
+O modal deve mostrar:
+
+## Informações da transação (somente leitura)
+
+* Nome da transação
+* Valor por parcela
+
+---
+
+## Campo — Parcela atual
+
+Tipo:
+
+number
+
+Regras:
+
+* Obrigatório
+* Mínimo: 1
+* Máximo: total
+
+---
+
+## Campo — Total de parcelas
+
+Tipo:
+
+number
+
+Regras:
+
+* Obrigatório
+* Mínimo: 2
+* Máximo sugerido: 48
+
+---
+
+# Comportamento ao confirmar
+
+Ao confirmar:
+
+## Atualizar transação atual
+
+Salvar:
+
+* `current_installment`
+* `total_installments`
+
+---
+
+## Criar parcelas futuras automaticamente
+
+Quantidade:
+
+total - atual
+
+Para cada parcela futura:
+
+Criar nova transação com:
+
+* Mesma descrição
+* Mesmo valor
+* Mesmo cartão
+* Mesma categoria
+* Data incrementada em +1 mês
+* Número correto da parcela
+
+---
+
+# Evitar duplicação
+
+Se já existirem parcelas futuras:
+
+Não recriar.
+
+Criar apenas as faltantes.
+
+---
+
+# Botão Cancelar
+
+Ao clicar:
+
+* Fechar modal
+* Não salvar alterações
+
+---
+
+# Casos de borda
+
+## Se total < parcela atual
+
+Bloquear confirmação.
+
+Mensagem:
+
+Total de parcelas deve ser maior ou igual à parcela atual.
+
+---
+
+## Se total = parcela atual
+
+Não gerar parcelas futuras.
+
+---
+
+## Se total = 1
+
+Bloquear.
+
+Mensagem:
+
+Parcelamento precisa ter pelo menos 2 parcelas.
+
+---
+
+# Resultado esperado
+
+Após esse ajuste:
+
+* Transações sem parcelamento terão um botão **Definir parcela**
+* O botão ficará **ao lado das ações existentes**
+* O usuário poderá corrigir parcelamentos manualmente com rapidez
+* O sistema ficará funcional mesmo quando o import não identificar parcelas automaticamente

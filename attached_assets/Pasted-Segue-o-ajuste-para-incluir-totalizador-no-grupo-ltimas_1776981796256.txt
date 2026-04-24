@@ -1,0 +1,157 @@
+Segue o ajuste para incluir **totalizador no grupo "Últimas Parcelas"**:
+
+---
+
+# Ajustar seção "Últimas Parcelas" para incluir totalizador no início
+
+**Página afetada:**
+`/dashboard`
+
+**Seção afetada:**
+**Últimas Parcelas**
+
+---
+
+# Objetivo
+
+Adicionar um **totalizador no início da seção "Últimas Parcelas"**, mostrando o valor total das parcelas que estão terminando.
+
+Isso permite que o usuário entenda rapidamente **quanto de despesas está prestes a acabar**.
+
+---
+
+# Novo comportamento obrigatório
+
+Na seção:
+
+# **Últimas Parcelas**
+
+Adicionar um **totalizador logo no topo da seção**, antes da lista de itens.
+
+---
+
+# Estrutura da seção (nova)
+
+Formato esperado:
+
+Últimas Parcelas
+
+**Total das Últimas Parcelas: R$ 1.258,40**
+
+---
+
+Academia SmartFit
+Parcela 9/10 • R$ 129,90
+Cartão Nubank • Saúde
+
+Internet Vivo
+Parcela 11/12 • R$ 99,90
+Cartão Itaú • Internet
+
+Netflix
+Parcela 5/6 • R$ 55,90
+Cartão Itaú • Streaming
+
+---
+
+# Regra do totalizador
+
+O totalizador deve somar:
+
+* O **valor das parcelas exibidas na lista**
+* Somente os itens que aparecem na seção
+* Não incluir parcelas fora da lista
+
+Ou seja:
+
+Somar:
+
+Valor da parcela (amount)
+
+De cada item listado em:
+
+**Últimas Parcelas**
+
+---
+
+# Fonte dos dados
+
+Mesmos dados usados para montar a lista:
+
+* `card_transactions`
+* Parcelamentos válidos
+* Últimas parcelas (<= 2 restantes)
+
+---
+
+# Formatação do total
+
+Formato:
+
+R$ {valor_total}
+
+Regras:
+
+* Formatação monetária brasileira
+* Não usar abreviação com "k"
+* Sempre mostrar duas casas decimais
+
+Exemplo:
+
+R$ 1.258,40
+
+---
+
+# Posicionamento visual
+
+O totalizador deve aparecer:
+
+* Logo abaixo do título **Últimas Parcelas**
+* Antes da lista de itens
+* Em destaque visual moderado
+
+Sugestão visual:
+
+* Fonte maior que os itens da lista
+* Pode usar `font-semibold`
+* Pode usar leve destaque visual
+
+---
+
+# Se não houver parcelas próximas do fim
+
+Mostrar:
+
+Últimas Parcelas
+
+Total das Últimas Parcelas: R$ 0,00
+
+Nenhuma parcela próxima do fim
+
+---
+
+# Casos de borda
+
+## Se houver apenas 1 item
+
+Somar normalmente.
+
+---
+
+## Se houver mais de 10 itens disponíveis
+
+Somar apenas:
+
+Os **10 itens exibidos**
+
+Não somar itens ocultos.
+
+---
+
+# Resultado esperado
+
+Após o ajuste:
+
+* A seção **Últimas Parcelas** terá um totalizador claro
+* O usuário verá rapidamente quanto está prestes a deixar de pagar
+* A leitura da seção ficará mais estratégica para planejamento financeiro

@@ -84,6 +84,31 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
       )
     );
 
+  const futureByCardRows = await db
+    .select({
+      cardId: cardTransactionsTable.cardId,
+      cardName: creditCardsTable.name,
+      total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)`,
+    })
+    .from(cardTransactionsTable)
+    .innerJoin(creditCardsTable, eq(cardTransactionsTable.cardId, creditCardsTable.id))
+    .where(
+      and(
+        eq(cardTransactionsTable.profileId, profileId),
+        eq(cardTransactionsTable.isInstallment, true),
+        or(
+          ...futureMonths.map(fm =>
+            and(
+              sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${fm.year}`,
+              sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${fm.month}`,
+            )
+          )
+        ),
+      )
+    )
+    .groupBy(cardTransactionsTable.cardId, creditCardsTable.name)
+    .orderBy(sql`SUM(ABS(${cardTransactionsTable.amount})) DESC`);
+
   // A Pagar — por competência (dueDate) filtrado pelo mês/ano
   const [monthPaidPayRow] = await db
     .select({ total: sql<string>`COALESCE(SUM(${accountsPayableTable.amount}), 0)` })
@@ -171,6 +196,11 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     monthTotalReceivables: Number(monthTotalRecRow?.total ?? 0),
     cardsTotalUsed,
     cardsTotalLimit,
+    futureInstallmentsByCard: futureByCardRows.map(r => ({
+      cardId: r.cardId,
+      cardName: r.cardName,
+      total: Number(r.total),
+    })),
   };
   res.json(GetDashboardSummaryResponse.parse(summary));
 });

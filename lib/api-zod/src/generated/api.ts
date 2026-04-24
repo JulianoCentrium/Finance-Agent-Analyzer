@@ -1405,6 +1405,13 @@ export const GetDashboardSummaryResponse = zod.object({
   monthTotalReceivables: zod.number(),
   cardsTotalUsed: zod.number(),
   cardsTotalLimit: zod.number(),
+  futureInstallmentsByCard: zod.array(
+    zod.object({
+      cardId: zod.number(),
+      cardName: zod.string(),
+      total: zod.number(),
+    }),
+  ),
 });
 
 /**
