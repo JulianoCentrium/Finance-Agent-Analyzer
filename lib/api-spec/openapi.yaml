@@ -2815,6 +2815,10 @@ components:
           type: number
         monthTotalReceivables:
           type: number
+        monthOverduePayables:
+          type: number
+        monthOverdueReceivables:
+          type: number
         cardsTotalUsed:
           type: number
         cardsTotalLimit:
@@ -2831,7 +2835,7 @@ components:
               total:
                 type: number
             required: [cardId, cardName, total]
-      required: [totalBalance, monthExpenses, futureInstallments, monthPaidPayables, monthTotalPayables, monthReceivedReceivables, monthTotalReceivables, cardsTotalUsed, cardsTotalLimit, futureInstallmentsByCard]
+      required: [totalBalance, monthExpenses, futureInstallments, monthPaidPayables, monthTotalPayables, monthReceivedReceivables, monthTotalReceivables, monthOverduePayables, monthOverdueReceivables, cardsTotalUsed, cardsTotalLimit, futureInstallmentsByCard]
 
     RecentTransaction:
       type: object

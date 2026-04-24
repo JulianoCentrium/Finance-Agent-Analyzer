@@ -159,6 +159,53 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
       )
     );
 
+  // Em atraso — itens com status 'overdue' cujo dueDate cai no mês/ano selecionado.
+  // Auto-marca como overdue: itens 'open' com dueDate < hoje viram 'overdue'.
+  await db
+    .update(accountsPayableTable)
+    .set({ status: "overdue" })
+    .where(
+      and(
+        eq(accountsPayableTable.profileId, profileId),
+        eq(accountsPayableTable.status, "open"),
+        sql`${accountsPayableTable.dueDate}::date < CURRENT_DATE`,
+      ),
+    );
+  await db
+    .update(accountsReceivableTable)
+    .set({ status: "overdue" })
+    .where(
+      and(
+        eq(accountsReceivableTable.profileId, profileId),
+        eq(accountsReceivableTable.status, "open"),
+        sql`${accountsReceivableTable.dueDate}::date < CURRENT_DATE`,
+      ),
+    );
+
+  const [monthOverduePayRow] = await db
+    .select({ total: sql<string>`COALESCE(SUM(${accountsPayableTable.amount}), 0)` })
+    .from(accountsPayableTable)
+    .where(
+      and(
+        eq(accountsPayableTable.profileId, profileId),
+        eq(accountsPayableTable.status, "overdue"),
+        sql`EXTRACT(YEAR FROM ${accountsPayableTable.dueDate}::date) = ${year}`,
+        sql`EXTRACT(MONTH FROM ${accountsPayableTable.dueDate}::date) = ${month}`,
+      )
+    );
+
+  const [monthOverdueRecRow] = await db
+    .select({ total: sql<string>`COALESCE(SUM(${accountsReceivableTable.amount}), 0)` })
+    .from(accountsReceivableTable)
+    .where(
+      and(
+        eq(accountsReceivableTable.profileId, profileId),
+        eq(accountsReceivableTable.status, "overdue"),
+        sql`EXTRACT(YEAR FROM ${accountsReceivableTable.dueDate}::date) = ${year}`,
+        sql`EXTRACT(MONTH FROM ${accountsReceivableTable.dueDate}::date) = ${month}`,
+      )
+    );
+
   const cards = await db
     .select({ id: creditCardsTable.id, creditLimit: creditCardsTable.creditLimit })
     .from(creditCardsTable)
@@ -196,6 +243,8 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     monthTotalPayables: Number(monthTotalPayRow?.total ?? 0),
     monthReceivedReceivables: Number(monthReceivedRecRow?.total ?? 0),
     monthTotalReceivables: Number(monthTotalRecRow?.total ?? 0),
+    monthOverduePayables: Number(monthOverduePayRow?.total ?? 0),
+    monthOverdueReceivables: Number(monthOverdueRecRow?.total ?? 0),
     cardsTotalUsed,
     cardsTotalLimit,
     futureInstallmentsByCard: futureByCardRows.map(r => ({

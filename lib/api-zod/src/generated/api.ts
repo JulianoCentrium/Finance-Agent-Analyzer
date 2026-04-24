@@ -1367,6 +1367,8 @@ export const GetDashboardSummaryResponse = zod.object({
   "monthTotalPayables": zod.number(),
   "monthReceivedReceivables": zod.number(),
   "monthTotalReceivables": zod.number(),
+  "monthOverduePayables": zod.number(),
+  "monthOverdueReceivables": zod.number(),
   "cardsTotalUsed": zod.number(),
   "cardsTotalLimit": zod.number(),
   "futureInstallmentsByCard": zod.array(zod.object({

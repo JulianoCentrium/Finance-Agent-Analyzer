@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useState, useMemo } from "react";
 import {
   TrendingDown,
@@ -71,6 +73,7 @@ function ProgressSummaryCard({
   total,
   used,
   usedLabel,
+  overdue,
   showAvailable,
   icon: Icon,
   loading,
@@ -81,6 +84,7 @@ function ProgressSummaryCard({
   total: number;
   used: number;
   usedLabel: string;
+  overdue?: number;
   showAvailable?: boolean;
   icon: React.ElementType;
   loading: boolean;
@@ -117,6 +121,11 @@ function ProgressSummaryCard({
             <p className="text-xs text-muted-foreground mt-1">
               {usedLabel}: <span className="font-medium text-foreground">{formatCurrency(used)}</span>
             </p>
+            {overdue !== undefined && overdue > 0 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Em atraso: <span className="font-medium text-destructive">{formatCurrency(overdue)}</span>
+              </p>
+            )}
             {showAvailable && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 Disponível: <span className="font-medium text-emerald-500">{formatCurrency(Math.max(0, available))}</span>
@@ -321,13 +330,21 @@ function FutureInstallmentsCard({
 export default function DashboardPage() {
   const { activeProfileId } = useProfile();
   const [, navigate] = useLocation();
-  const { year, month } = currentYearMonth();
-  const competenceLabel = `${monthName(month).slice(0, 3)}/${year}`;
+  const { year: currentYear, month: currentMonth } = currentYearMonth();
+  const [selYear, setSelYear] = useState(currentYear);
+  const [selMonth, setSelMonth] = useState(currentMonth);
+  const competenceLabel = `${monthName(selMonth).slice(0, 3)}/${selYear}`;
+  const isCurrentMonth = selYear === currentYear && selMonth === currentMonth;
+  const yearOptions = useMemo(() => {
+    const opts: number[] = [];
+    for (let y = currentYear - 3; y <= currentYear + 1; y++) opts.push(y);
+    return opts;
+  }, [currentYear]);
 
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({
     profileId: activeProfileId!,
-    year,
-    month,
+    year: selYear,
+    month: selMonth,
   }, { query: { enabled: !!activeProfileId } });
 
   const { data: upcoming, isLoading: loadingUpcoming } = useGetUpcomingBills({
@@ -358,11 +375,43 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
-          {monthName(month)} de {year}
-        </p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            {monthName(selMonth)} de {selYear}
+            {!isCurrentMonth && (
+              <button
+                type="button"
+                onClick={() => { setSelYear(currentYear); setSelMonth(currentMonth); }}
+                className="ml-2 text-xs text-primary hover:underline"
+              >
+                voltar para o mês atual
+              </button>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={String(selMonth)} onValueChange={v => setSelMonth(Number(v))}>
+            <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <SelectItem key={m} value={String(m)}>{monthName(m)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(selYear)} onValueChange={v => setSelYear(Number(v))}>
+            <SelectTrigger className="w-24 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {yearOptions.map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Badge variant="outline" className="text-[11px] font-normal">
+            Afeta: Despesas, A Pagar, A Receber
+          </Badge>
+        </div>
       </div>
 
       {/* KPI Cards — linha 1 (Saldo, Despesas, Parcelas) */}
@@ -399,6 +448,7 @@ export default function DashboardPage() {
           total={summary?.monthTotalPayables ?? 0}
           used={summary?.monthPaidPayables ?? 0}
           usedLabel="Pago"
+          overdue={summary?.monthOverduePayables ?? 0}
           icon={TrendingDown}
           loading={loadingSummary}
           competence={competenceLabel}
@@ -409,6 +459,7 @@ export default function DashboardPage() {
           total={summary?.monthTotalReceivables ?? 0}
           used={summary?.monthReceivedReceivables ?? 0}
           usedLabel="Recebido"
+          overdue={summary?.monthOverdueReceivables ?? 0}
           icon={TrendingUp}
           loading={loadingSummary}
           competence={competenceLabel}

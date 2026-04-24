@@ -100,6 +100,18 @@ router.get("/accounts-receivable", requireAuth, async (req, res): Promise<void> 
   }
   if (!(await assertProfileOwnership(res, clerkUserId, parsed.data.profileId))) return;
 
+  // Auto-mark overdue: any open item past due date becomes 'overdue'
+  await db
+    .update(accountsReceivableTable)
+    .set({ status: "overdue" })
+    .where(
+      and(
+        eq(accountsReceivableTable.profileId, parsed.data.profileId),
+        eq(accountsReceivableTable.status, "open"),
+        sql`${accountsReceivableTable.dueDate}::date < CURRENT_DATE`,
+      ),
+    );
+
   const conditions: SQL[] = [eq(accountsReceivableTable.profileId, parsed.data.profileId)];
   if (parsed.data.status) conditions.push(eq(accountsReceivableTable.status, parsed.data.status));
   if (parsed.data.year) {

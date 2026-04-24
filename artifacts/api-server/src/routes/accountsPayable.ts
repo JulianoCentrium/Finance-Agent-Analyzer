@@ -104,6 +104,18 @@ router.get("/accounts-payable", requireAuth, async (req, res): Promise<void> => 
   }
   if (!(await assertProfileOwnership(res, clerkUserId, parsed.data.profileId))) return;
 
+  // Auto-mark overdue: any open item past due date becomes 'overdue'
+  await db
+    .update(accountsPayableTable)
+    .set({ status: "overdue" })
+    .where(
+      and(
+        eq(accountsPayableTable.profileId, parsed.data.profileId),
+        eq(accountsPayableTable.status, "open"),
+        sql`${accountsPayableTable.dueDate}::date < CURRENT_DATE`,
+      ),
+    );
+
   const conditions: SQL[] = [eq(accountsPayableTable.profileId, parsed.data.profileId)];
   if (parsed.data.status) conditions.push(eq(accountsPayableTable.status, parsed.data.status));
   if (parsed.data.year) {

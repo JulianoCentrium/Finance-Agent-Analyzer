@@ -102,8 +102,8 @@ export default function ReportsPage() {
       name: item.isFuture
         ? `${String(item.month).padStart(2, "0")}/${item.year}★`
         : `${String(item.month).padStart(2, "0")}/${item.year}`,
-      "Contas a Receber": item.income,
-      "Contas a Pagar": item.expenses,
+      Receitas: item.income,
+      Despesas: item.expenses,
       // Solid line covers past + current (junction included in dashed too so they connect)
       SaldoReal: !item.isFuture ? item.balance : isJunction ? item.balance : null,
       // Dashed line covers current junction + future

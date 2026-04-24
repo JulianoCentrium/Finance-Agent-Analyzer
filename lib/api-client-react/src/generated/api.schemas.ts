@@ -799,6 +799,8 @@ export interface DashboardSummary {
   monthTotalPayables: number;
   monthReceivedReceivables: number;
   monthTotalReceivables: number;
+  monthOverduePayables: number;
+  monthOverdueReceivables: number;
   cardsTotalUsed: number;
   cardsTotalLimit: number;
   futureInstallmentsByCard: DashboardSummaryFutureInstallmentsByCardItem[];
