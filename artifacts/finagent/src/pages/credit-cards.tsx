@@ -665,11 +665,12 @@ function CardDetail({ card }: { card: CreditCardType }) {
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = [year - 2, year - 1, year, year + 1];
 
-  // Analysis: group positive amounts by category
+  // Analysis: group positive amounts by category (exclui canceladas)
   const categoryTotals = useMemo(() => {
     if (!transactions) return [];
     const map = new Map<string, number>();
     for (const tx of transactions) {
+      if (tx.status === "cancelled") continue;
       if (tx.amount > 0) {
         const key = tx.categoryName ?? "Não Classificado";
         map.set(key, (map.get(key) ?? 0) + tx.amount);
@@ -681,11 +682,11 @@ function CardDetail({ card }: { card: CreditCardType }) {
   }, [transactions]);
 
   const totalExpenses = useMemo(
-    () => transactions?.filter(tx => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0) ?? 0,
+    () => transactions?.filter(tx => tx.status !== "cancelled" && tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0) ?? 0,
     [transactions]
   );
   const totalCredits = useMemo(
-    () => transactions?.filter(tx => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0) ?? 0,
+    () => transactions?.filter(tx => tx.status !== "cancelled" && tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0) ?? 0,
     [transactions]
   );
 
