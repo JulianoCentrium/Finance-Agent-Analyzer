@@ -14,6 +14,8 @@ import {
   GetCategoryBreakdownResponse,
   GetRecentInstallmentsQueryParams,
   GetRecentInstallmentsResponse,
+  GetOpenInstallmentsQueryParams,
+  GetOpenInstallmentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/authMiddleware";
 import { assertProfileOwnership, type AuthRequest } from "../lib/auth";
@@ -496,6 +498,159 @@ router.get("/dashboard/recent-installments", requireAuth, async (req, res): Prom
   }));
 
   res.json(GetRecentInstallmentsResponse.parse(result));
+});
+
+router.get("/dashboard/open-installments", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthRequest;
+  const parsed = GetOpenInstallmentsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { profileId, cardId } = parsed.data;
+  if (!(await assertProfileOwnership(res, clerkUserId, profileId))) return;
+
+  const conditions = [
+    eq(cardTransactionsTable.profileId, profileId),
+    eq(creditCardsTable.isActive, true),
+    eq(cardTransactionsTable.isInstallment, true),
+    sql`${cardTransactionsTable.status} != 'cancelled'`,
+    sql`${cardTransactionsTable.installmentNumber} IS NOT NULL`,
+    sql`${cardTransactionsTable.totalInstallments} IS NOT NULL`,
+    sql`${cardTransactionsTable.totalInstallments} > 1`,
+  ];
+  if (cardId) {
+    conditions.push(eq(cardTransactionsTable.cardId, cardId));
+  }
+
+  const rows = await db
+    .select({
+      cardId: cardTransactionsTable.cardId,
+      cardName: creditCardsTable.name,
+      cardColor: creditCardsTable.color,
+      description: cardTransactionsTable.description,
+      amount: cardTransactionsTable.amount,
+      date: cardTransactionsTable.date,
+      installmentNumber: cardTransactionsTable.installmentNumber,
+      totalInstallments: cardTransactionsTable.totalInstallments,
+      categoryName: categoriesTable.name,
+      invoiceStatus: invoicesTable.status,
+    })
+    .from(cardTransactionsTable)
+    .innerJoin(creditCardsTable, eq(cardTransactionsTable.cardId, creditCardsTable.id))
+    .leftJoin(invoicesTable, eq(cardTransactionsTable.invoiceId, invoicesTable.id))
+    .leftJoin(categoriesTable, eq(cardTransactionsTable.categoryId, categoriesTable.id))
+    .where(and(...conditions));
+
+  const stripParcelaSuffix = (s: string): string =>
+    s.replace(/\s*(Parc\.?\s*\d+\/\d+|PARCELA\s+\d+\/\d+|\d+\/\d+)\s*$/i, "").trim();
+
+  type SeriesAcc = {
+    cardId: number;
+    cardName: string;
+    cardColor: string | null;
+    description: string;
+    categoryName: string | null;
+    totalInstallments: number;
+    firstInstallmentDate: string;
+    installmentAmount: number;
+    paidInstallments: number;
+    paidAmount: number;
+    remainingInstallments: number;
+    remainingAmount: number;
+    nextInstallmentNumber: number | null;
+    nextInstallmentDate: string | null;
+    lastInstallmentDate: string | null;
+  };
+
+  const groups = new Map<string, SeriesAcc>();
+
+  for (const r of rows) {
+    const dateStr = typeof r.date === "string"
+      ? r.date
+      : new Date(r.date as unknown as string).toISOString().split("T")[0];
+    const baseDescription = stripParcelaSuffix(r.description);
+    const total = Number(r.totalInstallments ?? 0);
+    const num = Number(r.installmentNumber ?? 0);
+    if (!total || !num) continue;
+    // Anchor: the date the series started (installment #1's date)
+    const d = new Date(dateStr + "T00:00:00");
+    d.setMonth(d.getMonth() - (num - 1));
+    const firstInstallmentDate = d.toISOString().split("T")[0];
+    const key = `${r.cardId}|${total}|${baseDescription.toUpperCase()}|${firstInstallmentDate}`;
+    let acc = groups.get(key);
+    if (!acc) {
+      acc = {
+        cardId: r.cardId,
+        cardName: r.cardName,
+        cardColor: r.cardColor ?? null,
+        description: baseDescription || r.description,
+        categoryName: r.categoryName ?? null,
+        totalInstallments: total,
+        firstInstallmentDate,
+        installmentAmount: 0,
+        paidInstallments: 0,
+        paidAmount: 0,
+        remainingInstallments: 0,
+        remainingAmount: 0,
+        nextInstallmentNumber: null,
+        nextInstallmentDate: null,
+        lastInstallmentDate: null,
+      };
+      groups.set(key, acc);
+    }
+    if (!acc.categoryName && r.categoryName) acc.categoryName = r.categoryName;
+    const amt = Math.abs(Number(r.amount));
+    if (amt > acc.installmentAmount) acc.installmentAmount = amt;
+
+    const isPaid = r.invoiceStatus === "paid";
+    if (isPaid) {
+      acc.paidInstallments += 1;
+      acc.paidAmount += amt;
+    } else {
+      acc.remainingInstallments += 1;
+      acc.remainingAmount += amt;
+      if (acc.nextInstallmentNumber === null || num < acc.nextInstallmentNumber) {
+        acc.nextInstallmentNumber = num;
+        acc.nextInstallmentDate = dateStr;
+      }
+    }
+    if (!acc.lastInstallmentDate || dateStr > acc.lastInstallmentDate) {
+      acc.lastInstallmentDate = dateStr;
+    }
+  }
+
+  // Only keep series with something still to pay
+  const items = Array.from(groups.values())
+    .filter(g => g.remainingInstallments > 0)
+    .map(g => ({
+      cardId: g.cardId,
+      cardName: g.cardName,
+      cardColor: g.cardColor,
+      description: g.description,
+      categoryName: g.categoryName,
+      totalInstallments: g.totalInstallments,
+      paidInstallments: g.paidInstallments,
+      // "Parcela atual" in PT-BR conventionally means the next-due installment
+      // (i.e. the one currently being paid), not the count of already-paid ones.
+      currentInstallment: g.nextInstallmentNumber ?? Math.min(g.paidInstallments + 1, g.totalInstallments),
+      remainingInstallments: g.remainingInstallments,
+      installmentAmount: Number(g.installmentAmount.toFixed(2)),
+      paidAmount: Number(g.paidAmount.toFixed(2)),
+      remainingAmount: Number(g.remainingAmount.toFixed(2)),
+      totalAmount: Number((g.paidAmount + g.remainingAmount).toFixed(2)),
+      firstInstallmentDate: g.firstInstallmentDate,
+      lastInstallmentDate: g.lastInstallmentDate ?? g.firstInstallmentDate,
+      nextInstallmentNumber: g.nextInstallmentNumber,
+      nextInstallmentDate: g.nextInstallmentDate,
+    }))
+    .sort((a, b) => {
+      // Sort by card name then by remaining amount desc
+      if (a.cardName !== b.cardName) return a.cardName.localeCompare(b.cardName);
+      return b.remainingAmount - a.remainingAmount;
+    });
+
+  res.json(GetOpenInstallmentsResponse.parse(items));
 });
 
 router.get("/dashboard/category-breakdown", requireAuth, async (req, res): Promise<void> => {

@@ -1480,6 +1480,32 @@ paths:
                 items:
                   $ref: "#/components/schemas/RecentInstallmentItem"
 
+  /dashboard/open-installments:
+    get:
+      operationId: getOpenInstallments
+      tags: [dashboard]
+      summary: Get open installment purchases (still being paid) with remaining balance
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: cardId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Open installment purchases with remaining balance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenInstallmentItem"
+
   /dashboard/category-breakdown:
     get:
       operationId: getCategoryBreakdown
@@ -2846,6 +2872,48 @@ components:
         categoryName:
           type: ["string", "null"]
       required: [id, description, amount, date, currentInstallment, totalInstallments]
+
+    OpenInstallmentItem:
+      type: object
+      properties:
+        cardId:
+          type: integer
+        cardName:
+          type: string
+        cardColor:
+          type: ["string", "null"]
+        description:
+          type: string
+        categoryName:
+          type: ["string", "null"]
+        totalInstallments:
+          type: integer
+        paidInstallments:
+          type: integer
+        currentInstallment:
+          type: integer
+        remainingInstallments:
+          type: integer
+        installmentAmount:
+          type: number
+        paidAmount:
+          type: number
+        remainingAmount:
+          type: number
+        totalAmount:
+          type: number
+        firstInstallmentDate:
+          type: string
+          format: date
+        lastInstallmentDate:
+          type: string
+          format: date
+        nextInstallmentNumber:
+          type: ["integer", "null"]
+        nextInstallmentDate:
+          type: ["string", "null"]
+          format: date
+      required: [cardId, cardName, description, totalInstallments, paidInstallments, currentInstallment, remainingInstallments, installmentAmount, paidAmount, remainingAmount, totalAmount, firstInstallmentDate, lastInstallmentDate]
 
     CashFlowMonth:
       type: object

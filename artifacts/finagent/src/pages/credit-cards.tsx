@@ -17,6 +17,7 @@ import {
   useListCategories,
   useCreateCategory,
   useSuggestCategory,
+  useGetOpenInstallments,
   type CreditCard as CreditCardType,
   type CardTransaction,
 } from "@workspace/api-client-react";
@@ -354,6 +355,32 @@ function CardDetail({ card }: { card: CreditCardType }) {
   const [selYear, setSelYear] = useState(year);
   const [selMonth, setSelMonth] = useState(month);
   const [activeTab, setActiveTab] = useState("transactions");
+  const detailSearch = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(detailSearch);
+    const tab = params.get("tab");
+    if (tab === "open-installments" || tab === "transactions" || tab === "analysis") {
+      setActiveTab(tab);
+    }
+  }, [detailSearch, card.id]);
+
+  const { data: openInstallments } = useGetOpenInstallments(
+    { profileId: activeProfileId!, cardId: card.id },
+    { query: { enabled: !!activeProfileId } },
+  );
+  const cardOpenInstallments = openInstallments ?? [];
+  const sortedOpenInstallments = useMemo(
+    () => [...cardOpenInstallments].sort((a, b) => b.remainingAmount - a.remainingAmount),
+    [cardOpenInstallments],
+  );
+  const totalOpenInstallments = useMemo(
+    () => cardOpenInstallments.reduce((s, it) => s + it.remainingAmount, 0),
+    [cardOpenInstallments],
+  );
+  const totalOriginalInstallments = useMemo(
+    () => cardOpenInstallments.reduce((s, it) => s + it.totalAmount, 0),
+    [cardOpenInstallments],
+  );
   const [showAddTx, setShowAddTx] = useState(false);
   const [editTx, setEditTx] = useState<CardTransaction | null>(null);
   const [installmentTx, setInstallmentTx] = useState<CardTransaction | null>(null);
@@ -711,19 +738,27 @@ function CardDetail({ card }: { card: CreditCardType }) {
         </div>
       </div>
 
-      {!selectedInvoice && (
-        <p className="text-muted-foreground text-sm text-center py-4">
-          Nenhuma fatura neste mês. Importe um arquivo CSV/OFX ou adicione lançamentos manualmente.
-        </p>
-      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="h-8">
+          <TabsTrigger value="transactions" className="text-xs h-7">Transações</TabsTrigger>
+          <TabsTrigger value="analysis" className="text-xs h-7">Análise por Categoria</TabsTrigger>
+          <TabsTrigger value="open-installments" className="text-xs h-7">
+            Parcelamentos em Aberto
+            {cardOpenInstallments.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] h-4">
+                {cardOpenInstallments.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {selectedInvoice && (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="h-8">
-            <TabsTrigger value="transactions" className="text-xs h-7">Transações</TabsTrigger>
-            <TabsTrigger value="analysis" className="text-xs h-7">Análise por Categoria</TabsTrigger>
-          </TabsList>
+        {!selectedInvoice && activeTab !== "open-installments" && (
+          <p className="text-muted-foreground text-sm text-center py-4">
+            Nenhuma fatura neste mês. Importe um arquivo CSV/OFX ou adicione lançamentos manualmente.
+          </p>
+        )}
 
+        {selectedInvoice && (<>
           <TabsContent value="transactions" className="mt-3">
             {transactions && transactions.length > 0 ? (
               <div className="rounded-md border border-border overflow-hidden">
@@ -870,8 +905,100 @@ function CardDetail({ card }: { card: CreditCardType }) {
               <p className="text-muted-foreground text-sm text-center py-8">Sem dados para análise neste período.</p>
             )}
           </TabsContent>
-        </Tabs>
-      )}
+        </>)}
+
+          <TabsContent value="open-installments" className="mt-3">
+            {sortedOpenInstallments.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Saldo total em aberto</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">
+                      {formatCurrency(totalOpenInstallments)}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Valor original (somado)</p>
+                    <p className="text-lg font-bold tabular-nums text-muted-foreground">
+                      {formatCurrency(totalOriginalInstallments)}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Compras parceladas em aberto</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">
+                      {sortedOpenInstallments.length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="h-8">
+                        <TableHead className="text-xs py-1">Descrição</TableHead>
+                        <TableHead className="text-xs py-1 text-center">Parcela atual</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Valor parcela</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Pago</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Quanto falta pagar</TableHead>
+                        <TableHead className="text-xs py-1">Próx. fatura</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedOpenInstallments.map((it, idx) => {
+                        const paidAmount = it.totalAmount - it.remainingAmount;
+                        const pct = it.totalInstallments > 0
+                          ? Math.round((it.paidInstallments / it.totalInstallments) * 100)
+                          : 0;
+                        return (
+                          <TableRow
+                            key={`${it.cardId}-${it.firstInstallmentDate}-${it.description}-${idx}`}
+                            className="h-9"
+                          >
+                            <TableCell className="text-xs py-1 max-w-[260px]">
+                              <span className="line-clamp-1">{it.description}</span>
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-center tabular-nums">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span>{it.currentInstallment}/{it.totalInstallments}</span>
+                                <div className="w-16 bg-muted rounded-full h-1 overflow-hidden">
+                                  <div
+                                    className="h-1 rounded-full bg-primary"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-right tabular-nums">
+                              {formatCurrency(it.installmentAmount)}
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-right tabular-nums text-muted-foreground">
+                              {formatCurrency(paidAmount)}
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-right font-semibold tabular-nums text-foreground">
+                              {formatCurrency(it.remainingAmount)}
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-muted-foreground">
+                              {it.nextInstallmentDate ? formatDate(it.nextInstallmentDate) : "—"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex justify-end text-sm pt-1">
+                  <span className="text-muted-foreground mr-2">Saldo total de parcelamentos em aberto:</span>
+                  <span className="font-bold tabular-nums">{formatCurrency(totalOpenInstallments)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm text-center py-8">
+                Nenhuma compra parcelada em aberto neste cartão.
+              </p>
+            )}
+          </TabsContent>
+      </Tabs>
 
       {/* Add transaction dialog */}
       <Dialog open={showAddTx} onOpenChange={open => { if (!open) setShowAddTx(false); }}>
