@@ -575,8 +575,8 @@ export default function DashboardPage() {
                         {formatDate(tx.date)} · {tx.sourceName ?? "Cartão"}
                       </p>
                     </div>
-                    <span className={`ml-2 font-medium ${tx.amount < 0 ? "text-red-400" : "text-green-500"}`}>
-                      {formatCurrency(tx.amount)}
+                    <span className={`ml-2 font-medium tabular-nums ${tx.amount > 0 ? "text-red-400" : "text-green-500"}`}>
+                      {tx.amount > 0 ? "-" : "+"}{formatCurrency(Math.abs(tx.amount))}
                     </span>
                   </div>
                 ))}
