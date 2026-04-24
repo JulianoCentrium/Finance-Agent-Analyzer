@@ -787,7 +787,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
                         <TableCell className="text-xs py-1 max-w-[200px]">
                           <span className={`line-clamp-1 ${isCancelled ? "line-through" : ""}`}>{tx.description}</span>
                           {tx.isInstallment && tx.installmentNumber && tx.totalInstallments ? (
-                            isLocked ? (
+                            (isLocked || isCancelled) ? (
                               <span className="ml-1 text-muted-foreground text-[10px]">
                                 {tx.installmentNumber}/{tx.totalInstallments}
                               </span>
