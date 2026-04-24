@@ -120,6 +120,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     .where(
       and(
         eq(accountsPayableTable.profileId, profileId),
+        sql`${accountsPayableTable.status} != 'cancelled'`,
         sql`EXTRACT(YEAR FROM ${accountsPayableTable.dueDate}::date) = ${year}`,
         sql`EXTRACT(MONTH FROM ${accountsPayableTable.dueDate}::date) = ${month}`,
       )
@@ -144,6 +145,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     .where(
       and(
         eq(accountsReceivableTable.profileId, profileId),
+        sql`${accountsReceivableTable.status} != 'cancelled'`,
         sql`EXTRACT(YEAR FROM ${accountsReceivableTable.dueDate}::date) = ${year}`,
         sql`EXTRACT(MONTH FROM ${accountsReceivableTable.dueDate}::date) = ${month}`,
       )
