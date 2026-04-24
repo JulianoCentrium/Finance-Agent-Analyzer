@@ -855,13 +855,12 @@ export const SetCardTransactionInstallmentParams = zod.object({
 })
 
 
-export const setCardTransactionInstallmentBodyTotalInstallmentsMin = 2;
 
 
 
 export const SetCardTransactionInstallmentBody = zod.object({
   "currentInstallment": zod.number().min(1),
-  "totalInstallments": zod.number().min(setCardTransactionInstallmentBodyTotalInstallmentsMin)
+  "totalInstallments": zod.number().min(1)
 })
 
 export const SetCardTransactionInstallmentResponse = zod.object({

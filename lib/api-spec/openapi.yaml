@@ -2441,7 +2441,7 @@ components:
           minimum: 1
         totalInstallments:
           type: integer
-          minimum: 2
+          minimum: 1
       required: [currentInstallment, totalInstallments]
 
     SetCardTransactionInstallmentResponse:

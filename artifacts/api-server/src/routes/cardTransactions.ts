@@ -768,8 +768,8 @@ router.patch("/card-transactions/:id/set-installment", requireAuth, async (req, 
     return;
   }
   const { currentInstallment, totalInstallments } = body.data;
-  if (totalInstallments <= currentInstallment) {
-    res.status(422).json({ error: "Total de parcelas deve ser maior que a parcela atual." });
+  if (currentInstallment > totalInstallments) {
+    res.status(422).json({ error: "A parcela atual não pode ser maior que o total de parcelas." });
     return;
   }
 
@@ -789,6 +789,52 @@ router.patch("/card-transactions/:id/set-installment", requireAuth, async (req, 
     }
   }
 
+  const baseDescription = existing.description.replace(/\s*(Parc\.?\s*\d+\/\d+|PARCELA\s+\d+\/\d+|\d+\/\d+)\s*$/i, "").trim();
+
+  // Special case: totalInstallments === 1 means "Única" — revert to non-installment
+  if (totalInstallments === 1) {
+    const recalcIds = new Set<number>();
+    if (existing.invoiceId) recalcIds.add(existing.invoiceId);
+
+    // Clean up any stale generated future installments from this series
+    const oldInstNum = existing.installmentNumber;
+    const oldTotalInst = existing.totalInstallments;
+    const txDateStr = typeof existing.date === "string" ? existing.date : new Date(existing.date as unknown as string).toISOString().split("T")[0];
+    const txDate = new Date(txDateStr + "T00:00:00");
+    if (oldInstNum && oldTotalInst && oldTotalInst > oldInstNum) {
+      for (let oldFutureNum = oldInstNum + 1; oldFutureNum <= oldTotalInst; oldFutureNum++) {
+        const monthsAhead = oldFutureNum - oldInstNum;
+        const futureDate = new Date(txDate);
+        futureDate.setMonth(futureDate.getMonth() + monthsAhead);
+        const futureYear = futureDate.getFullYear();
+        const futureMonth = futureDate.getMonth() + 1;
+        const [inv] = await db
+          .select({ id: invoicesTable.id, status: invoicesTable.status })
+          .from(invoicesTable)
+          .where(and(eq(invoicesTable.cardId, existing.cardId), eq(invoicesTable.year, futureYear), eq(invoicesTable.month, futureMonth)));
+        if (!inv || inv.status === "closed") continue;
+        const oldFutureDesc = `${baseDescription} PARCELA ${oldFutureNum}/${oldTotalInst}`;
+        await db.delete(cardTransactionsTable).where(and(
+          eq(cardTransactionsTable.invoiceId, inv.id),
+          eq(cardTransactionsTable.cardId, existing.cardId),
+          eq(cardTransactionsTable.source, "installment_generated"),
+          eq(cardTransactionsTable.installmentNumber, oldFutureNum),
+          eq(cardTransactionsTable.totalInstallments, oldTotalInst),
+          eq(cardTransactionsTable.description, oldFutureDesc),
+        ));
+        recalcIds.add(inv.id);
+      }
+    }
+
+    await db.update(cardTransactionsTable)
+      .set({ description: baseDescription, installmentNumber: null, totalInstallments: null, isInstallment: false })
+      .where(eq(cardTransactionsTable.id, existing.id));
+
+    for (const invId of recalcIds) await recalcInvoice(invId);
+    res.json(SetCardTransactionInstallmentResponse.parse({ updated: true, generated: 0, skipped: 0 }));
+    return;
+  }
+
   const [card] = await db.select().from(creditCardsTable).where(eq(creditCardsTable.id, existing.cardId));
   if (!card) {
     res.status(404).json({ error: "Cartão não encontrado." });
@@ -800,7 +846,6 @@ router.patch("/card-transactions/:id/set-installment", requireAuth, async (req, 
   const txDate = new Date(txDateStr + "T00:00:00");
 
   // Update the transaction's installment metadata and rewrite description suffix
-  const baseDescription = existing.description.replace(/\s*(Parc\.?\s*\d+\/\d+|PARCELA\s+\d+\/\d+|\d+\/\d+)\s*$/i, "").trim();
   const updatedDescription = `${baseDescription} PARCELA ${currentInstallment}/${totalInstallments}`;
   await db.update(cardTransactionsTable)
     .set({

@@ -570,14 +570,19 @@ function CardDetail({ card }: { card: CreditCardType }) {
 
   const openSetInstallmentDialog = (tx: CardTransaction) => {
     setSetInstTx(tx);
-    setSetInstCurrent(tx.installmentNumber ?? 1);
-    setSetInstTotal(tx.totalInstallments ?? Math.max(2, (tx.installmentNumber ?? 1) + 1));
+    if (!tx.isInstallment) {
+      setSetInstCurrent(1);
+      setSetInstTotal(1);
+    } else {
+      setSetInstCurrent(tx.installmentNumber ?? 1);
+      setSetInstTotal(tx.totalInstallments ?? Math.max(2, (tx.installmentNumber ?? 1) + 1));
+    }
   };
 
   const handleSetInstallment = async () => {
     if (!setInstTx) return;
-    if (setInstTotal <= setInstCurrent) {
-      toast({ title: "Total deve ser maior que a parcela atual.", variant: "destructive" });
+    if (setInstCurrent > setInstTotal) {
+      toast({ title: "Parcela atual não pode ser maior que o total.", variant: "destructive" });
       return;
     }
     try {
@@ -589,10 +594,10 @@ function CardDetail({ card }: { card: CreditCardType }) {
         },
       });
       qc.invalidateQueries();
-      toast({
-        title: "Parcela redefinida",
-        description: `Parcela ${setInstCurrent}/${setInstTotal} definida${result.generated > 0 ? `, ${result.generated} parcela(s) futura(s) criada(s)` : ""}${result.skipped > 0 ? `, ${result.skipped} ignorada(s)` : ""}.`,
-      });
+      const desc = setInstTotal === 1
+        ? "Transação marcada como pagamento único."
+        : `Parcela ${setInstCurrent}/${setInstTotal} definida${result.generated > 0 ? `, ${result.generated} parcela(s) futura(s) criada(s)` : ""}${result.skipped > 0 ? `, ${result.skipped} ignorada(s)` : ""}.`;
+      toast({ title: "Parcela redefinida", description: desc });
       setSetInstTx(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao redefinir parcela";
@@ -781,7 +786,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
                         <TableCell className={`text-xs py-1 tabular-nums ${isCancelled ? "line-through" : ""}`}>{formatDate(tx.date)}</TableCell>
                         <TableCell className="text-xs py-1 max-w-[200px]">
                           <span className={`line-clamp-1 ${isCancelled ? "line-through" : ""}`}>{tx.description}</span>
-                          {tx.isInstallment && tx.installmentNumber && tx.totalInstallments && (
+                          {tx.isInstallment && tx.installmentNumber && tx.totalInstallments ? (
                             isLocked ? (
                               <span className="ml-1 text-muted-foreground text-[10px]">
                                 {tx.installmentNumber}/{tx.totalInstallments}
@@ -801,7 +806,21 @@ function CardDetail({ card }: { card: CreditCardType }) {
                                 <TooltipContent side="top">Clique para redefinir a parcela</TooltipContent>
                               </Tooltip>
                             )
-                          )}
+                          ) : (!tx.isInstallment && !isLocked && !isCancelled) ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="ml-1 inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/60 border-b border-dashed border-muted-foreground/30 hover:text-primary/70 hover:border-primary/40 cursor-pointer group/inst transition-colors"
+                                  onClick={() => openSetInstallmentDialog(tx)}
+                                >
+                                  Única
+                                  <Pencil className="w-2 h-2 opacity-0 group-hover/inst:opacity-100 transition-opacity" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Clique para definir parcelas</TooltipContent>
+                            </Tooltip>
+                          ) : null}
                           {isCancelled && (
                             <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1 border-destructive/40 text-destructive">cancelada</Badge>
                           )}
@@ -830,7 +849,7 @@ function CardDetail({ card }: { card: CreditCardType }) {
                                 <Pencil className="w-3 h-3" />
                               </Button>
                             )}
-                            {tx.source === "manual" && !isLocked && !isCancelled && (
+                            {!isLocked && !isCancelled && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -1127,11 +1146,11 @@ function CardDetail({ card }: { card: CreditCardType }) {
                   <Label className="text-xs">Total de parcelas</Label>
                   <Input
                     type="number"
-                    min={2}
+                    min={1}
                     max={48}
                     value={setInstTotal}
                     onChange={e => {
-                      const newTotal = Math.max(2, Math.min(48, Number(e.target.value)));
+                      const newTotal = Math.max(1, Math.min(48, Number(e.target.value)));
                       setSetInstTotal(newTotal);
                       if (setInstCurrent > newTotal) setSetInstCurrent(newTotal);
                     }}
@@ -1139,12 +1158,14 @@ function CardDetail({ card }: { card: CreditCardType }) {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                Serão geradas <span className="font-semibold text-foreground">{Math.max(0, setInstTotal - setInstCurrent)}</span> parcela(s) futura(s),
-                uma por mês após esta transação. Parcelas já existentes serão ignoradas.
+                {setInstTotal === 1
+                  ? "Esta transação permanecerá como pagamento único (nenhuma parcela futura será criada)."
+                  : <>Serão geradas <span className="font-semibold text-foreground">{Math.max(0, setInstTotal - setInstCurrent)}</span> parcela(s) futura(s), uma por mês após esta transação. Parcelas já existentes serão ignoradas.</>
+                }
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setSetInstTx(null)}>Cancelar</Button>
-                <Button onClick={handleSetInstallment} disabled={setInstallmentMutation.isPending || setInstTotal <= setInstCurrent}>
+                <Button onClick={handleSetInstallment} disabled={setInstallmentMutation.isPending || setInstCurrent > setInstTotal}>
                   {setInstallmentMutation.isPending ? "Salvando..." : "Confirmar"}
                 </Button>
               </div>

@@ -458,7 +458,7 @@ export interface GenerateInstallmentsResponse {
 export interface SetCardTransactionInstallmentBody {
   /** @minimum 1 */
   currentInstallment: number;
-  /** @minimum 2 */
+  /** @minimum 1 */
   totalInstallments: number;
 }
 
