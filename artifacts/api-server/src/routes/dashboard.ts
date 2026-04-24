@@ -37,29 +37,16 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     .from(bankAccountsTable)
     .where(and(eq(bankAccountsTable.profileId, profileId), eq(bankAccountsTable.isActive, true)));
 
+  // Despesas do Mês = SUM(card_transactions.amount) onde status <> 'cancelled' no mês selecionado.
   const [cardExpRow] = await db
-    .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
+    .select({ total: sql<string>`COALESCE(SUM(${cardTransactionsTable.amount}), 0)` })
     .from(cardTransactionsTable)
     .where(
       and(
         eq(cardTransactionsTable.profileId, profileId),
         sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
         sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
-        sql`${cardTransactionsTable.amount} < 0`,
         sql`${cardTransactionsTable.status} != 'cancelled'`,
-      )
-    );
-
-  const [payExpRow] = await db
-    .select({ total: sql<string>`COALESCE(SUM(${accountsPayableTable.paidAmount}), 0)` })
-    .from(accountsPayableTable)
-    .where(
-      and(
-        eq(accountsPayableTable.profileId, profileId),
-        eq(accountsPayableTable.status, "paid"),
-        sql`EXTRACT(YEAR FROM ${accountsPayableTable.paidAt}::date) = ${year}`,
-        sql`EXTRACT(MONTH FROM ${accountsPayableTable.paidAt}::date) = ${month}`,
-        sql`${accountsPayableTable.invoiceId} IS NULL`,
       )
     );
 
@@ -240,7 +227,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
 
   const summary = {
     totalBalance: Number(balanceRow?.total ?? 0),
-    monthExpenses: Number(cardExpRow?.total ?? 0) + Number(payExpRow?.total ?? 0),
+    monthExpenses: Number(cardExpRow?.total ?? 0),
     futureInstallments: Number(futureRow?.total ?? 0),
     monthPaidPayables: Number(monthPaidPayRow?.total ?? 0),
     monthTotalPayables: Number(monthTotalPayRow?.total ?? 0),
@@ -342,14 +329,13 @@ router.get("/dashboard/cash-flow", requireAuth, async (req, res): Promise<void> 
           );
 
         const [cardExpRow] = await db
-          .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
+          .select({ total: sql<string>`COALESCE(SUM(${cardTransactionsTable.amount}), 0)` })
           .from(cardTransactionsTable)
           .where(
             and(
               eq(cardTransactionsTable.profileId, profileId),
               sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
               sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
-              sql`${cardTransactionsTable.amount} < 0`,
               sql`${cardTransactionsTable.status} != 'cancelled'`,
             )
           );
@@ -397,14 +383,13 @@ router.get("/dashboard/cash-flow", requireAuth, async (req, res): Promise<void> 
           );
 
         const [planCardRow] = await db
-          .select({ total: sql<string>`COALESCE(SUM(ABS(${cardTransactionsTable.amount})), 0)` })
+          .select({ total: sql<string>`COALESCE(SUM(${cardTransactionsTable.amount}), 0)` })
           .from(cardTransactionsTable)
           .where(
             and(
               eq(cardTransactionsTable.profileId, profileId),
               sql`EXTRACT(YEAR FROM ${cardTransactionsTable.date}::date) = ${year}`,
               sql`EXTRACT(MONTH FROM ${cardTransactionsTable.date}::date) = ${month}`,
-              sql`${cardTransactionsTable.amount} < 0`,
               sql`${cardTransactionsTable.status} != 'cancelled'`,
             )
           );
