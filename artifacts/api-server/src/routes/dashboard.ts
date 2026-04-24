@@ -63,9 +63,12 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
       )
     );
 
+  const nowDate = new Date();
+  const baseYear = nowDate.getFullYear();
+  const baseMonth = nowDate.getMonth() + 1;
   const futureMonths: Array<{ year: number; month: number }> = [];
   for (let i = 1; i <= 3; i++) {
-    const d = new Date(year, month - 1 + i, 1);
+    const d = new Date(baseYear, baseMonth - 1 + i, 1);
     futureMonths.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
   }
   const [futureRow] = await db
